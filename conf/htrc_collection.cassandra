@@ -1,0 +1,92 @@
+/*
+#  
+#  This is the Cassandra "schema" definition file for HTRC Corpus
+#
+#  to load this file, use:
+# 
+#  > bin/cassandra-cli --host <host> --port <port> --file conf/schemas/htrc_collection.cassandra
+#
+#  the schema can be roughly visualized as the following:
+#
+#  "HTRCCorpus":                                                                 -- keyspace
+#  {
+#      "VolumeContents":                                                         -- the master column family, which contains all volume and page contents and metadata
+#      {
+#          "<volumeID>":                                                         -- row key, which is the volume ID
+#          {
+#              "volume.copyright"             : "<PUBLIC|IN-COPYRIGHT>"             -- column for volume copyright info
+#              "volume.pageCount"             : "<page_count>"                      -- column for number of pages in the volume
+#              "volume.METS"                  : "<contents of mets.xml>"            -- column for the contents of METS file
+#              "volume.pagefeature.<feat>:"   : "<page_seq1>,<page_seqn>,..."       -- column for list of pages having the particular page feature
+#              "00000001.byteCount"           : <byteCount for page 1>              -- column for byte count of page 1
+#              "00000001.characterCount"      : <charCount for page 1>              -- column for character count of page 1
+#              "00000001.contents"            : "<page_text>"                       -- column for page contents of page 1
+#              "00000001.checksum.MD5"        : "<page_md5>"                        -- column for MD5 checksum of page contents of page 1
+#              "00000001.checksum.SHA1"       : "<page_sha1>"                       -- column for SHA1 checksum of page contents. Typically a page has only one checksum, i.e. either MD5 or SHA1
+#              "00000001.pageNumberLabel"     : "<page_number_label>"               -- column for page number label.  page number label is text label of page number, e.g. i, v, ix, 101, 20
+#              "00000001.sequence"            : "<page_sequence>"                   -- column for page sequence number, numeric order of this page in a volume, alaways a 1-based integer
+#              "00000001.pageFeature.<feat>"  : "<TRUE|FALSE>"                      -- column for page feature. If the page has the feature, it is true; if not, the column is usually omitted.
+#              "00000002.byteCount"           : <byteCount for page 2>              -- column for byte count of page 2
+#              "00000002.characterCount"      : <charCount for page 2>              -- column for character count of page 2
+#              }
+#          }
+#      }
+#
+#      "Collections":                                            -- column family for themed collections
+#      {
+#          "ALL"  :
+#          {
+#              "<volumeID>":                                     -- row containing ALL volumes
+#          
+#          }
+#          "PUBLIC":                                             -- row containing public volumes
+#          {
+#              "<volumeID>":                                     -- valueless column where column key is the volume ID
+#          }
+#
+#          "IN_COPYRIGHT":                                       -- row containing in-copyright volumes
+#          {
+#              "<volumeID>":                                     -- valueless column where column key is the volume ID
+#          }
+#      }
+#
+#      "CollectionNames":                                        -- column family with one row listing all available collections
+#      {                                                         -- this is needed because there is no easy/inexpensive way to
+#                                                                -- list all row keys from a column family in cassandra. such
+#                                                                -- operation is considered an anti-pattern in cassandra
+#          "name:"
+#          {
+#              "<collectionName">:                               -- valueless column where column key is a named collection
+#          }
+#      }       
+#  }
+#
+*/
+
+
+# create keyspace HTRCCorpus
+#     with strategy_options={replication_factor:1}
+#     and placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy';
+
+create keyspace HTRCCorpus
+      with placement_strategy = 'org.apache.cassandra.locator.NetworkTopologyStrategy'
+      and strategy_options={DC:2};
+
+use HTRCCorpus;
+
+create column family VolumeContents
+    with column_type = Standard
+    and key_validation_class = UTF8Type
+    and comparator = UTF8Type;
+
+create column family Collections
+    with column_type = Standard
+    and key_validation_class = UTF8Type
+    and comparator = UTF8Type;
+    
+create column family CollectionNames
+    with column_type = Standard
+    and key_validation_class = UTF8Type
+    and comparator = UTF8Type;
+    
+
