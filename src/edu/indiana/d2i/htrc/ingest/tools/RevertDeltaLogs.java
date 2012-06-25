@@ -278,6 +278,9 @@ public class RevertDeltaLogs {
                 } else if ("-t".equals(args[i]) || "--to".equals(args[i])) {
                     i++;
                     to = ToEnum.valueOf(args[i]);
+                } else if ("-h".equals(args[i]) || "--help".equals(args[i])) {
+                    printUsage();
+                    System.exit(-1);
                 } else {
                     targetSet.add(args[i]);
                     from = FromEnum.TARGETED;
@@ -344,7 +347,10 @@ public class RevertDeltaLogs {
     
     private static void printUsage() {
         System.out.println("Usage: RevertDeltaLogs [<-f | --from> <VERIFIED | PROCESSED | ALL>]  [<-t | --to> <PROCESSED | RAW>]  [pattern [pattern ...]]");
+        
         System.out.println("       default values:  -f ALL -t RAW");
+        
+        System.out.println("Usage: RevertDeltaLogs <-h | --help>");
     }
 
 }
