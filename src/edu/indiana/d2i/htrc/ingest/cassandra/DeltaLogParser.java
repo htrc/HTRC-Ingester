@@ -214,8 +214,11 @@ public class DeltaLogParser {
             if (log.isTraceEnabled()) log.trace("line " + line);
             
             if (line != null) {
-                
-                if (line.endsWith(ZIP_SUFFIX)) {
+                if (line.startsWith(DELETING_PREFIX)) {
+                    if (log.isTraceEnabled()) log.trace("got a delete line");
+                    // handling the delete case. 
+                    parseDeleteLine(line);
+                } else if (line.endsWith(ZIP_SUFFIX)) {
                     if (log.isTraceEnabled()) log.trace("got a volume file line");
                     if (!seenALine) {
                         parsePrefixFromLine(line);
@@ -244,15 +247,6 @@ public class DeltaLogParser {
                     if (log.isTraceEnabled()) log.trace("got COPYRIGHT_PREFIX");
                     String copyrightString = line.substring(COPYRIGHT_PREFIX_SIZE);
                     copyright = CopyrightEnum.valueOf(copyrightString);
-                } else if (line.startsWith(DELETING_PREFIX)) {
-                    if (log.isTraceEnabled()) log.trace("got a delete line");
-                    // handling the delete case. 
-                    parseDeleteLine(line);
-//                } else if (line.matches(PAGE_TXT_FILE_PATTERN)) {
-//                    if (log.isTraceEnabled()) log.trace("got a page txt file line");
-//                    // handling the update case.  store the page text to Cassandra and compute size and MD5.  if it already exists, replace it
-//                    parseNewTxtLine(line);
-                    
                 }
                 
             }

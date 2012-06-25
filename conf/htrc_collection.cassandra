@@ -70,7 +70,7 @@
 
 create keyspace HTRCCorpus
       with placement_strategy = 'org.apache.cassandra.locator.NetworkTopologyStrategy'
-      and strategy_options={DC:2};
+      and strategy_options={DC1:2};
 
 use HTRCCorpus;
 
