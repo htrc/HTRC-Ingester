@@ -154,7 +154,7 @@ public class HectorManager {
             boolean isDeleteVolume = volumeDeletionInfo.getIsDeleteVolume();
             if (isDeleteVolume) {
                 volumeContentsCFMutator.addDeletion(volumeID, volumeContentsCFName);
-                if (log.isTraceEnabled()) log.trace("row marked for delete for: " + volumeID);
+                log.info("row marked for delete for: " + volumeID);
                 
 //                ColumnFamilyUpdater<String, String> allCollectionDeletionUpdater = collectionsCFTemplate.createUpdater("ALL");
 //                allCollectionDeletionUpdater.deleteColumn(volumeID);
@@ -166,10 +166,10 @@ public class HectorManager {
 //                copyrightBasedCollectionDeletionUpdater.deleteColumn(volumeID);
 //                
                 collectionsCFMutator.addDeletion("ALL", collectionsCFName, volumeID, stringSerializer);
-                if (log.isTraceEnabled()) log.trace("volume marked for delete from ALL collection: " + volumeID);
+                log.info("volume marked for delete from ALL collection: " + volumeID);
                 
                 collectionsCFMutator.addDeletion(copyrightString, collectionsCFName, volumeID, stringSerializer);
-                if (log.isTraceEnabled()) log.trace("volume marked for delete from " + copyrightString + " collection: " + volumeID);
+                log.info("volume marked for delete from " + copyrightString + " collection: " + volumeID);
                 
                 
             } else {
