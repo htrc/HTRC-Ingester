@@ -34,6 +34,8 @@ package edu.indiana.d2i.htrc.ingest.tools;
 import java.io.File;
 import java.io.FileFilter;
 import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import edu.indiana.d2i.htrc.ingest.Constants;
 import edu.indiana.d2i.htrc.ingest.PropertyReader;
@@ -52,11 +54,11 @@ public class RevertDeltaLogs {
     private static final String RAW = "RAW";
     
     
-    static class PrefixedFileFilter implements FileFilter {
-        private final String[] prefixes;
+    static class RegexFileFilter implements FileFilter {
+        private final String[] regexes;
         
-        PrefixedFileFilter(String[] prefixes) {
-            this.prefixes = prefixes.clone();
+        RegexFileFilter(String[] regexes) {
+            this.regexes = regexes.clone();
         }
 
         /**
@@ -66,18 +68,18 @@ public class RevertDeltaLogs {
         public boolean accept(File pathname) {
             String name = pathname.getName();
             boolean result = true;
-            for (String prefix : prefixes) {
-                result = result && name.startsWith(prefix);
+            for (String regex: regexes) {
+                result = result && name.matches(regex);
                 if (!result) break;
             }
             return result;
         }
     }
     
-    static class PatternedFileFilter implements FileFilter {
+    static class ContainsFileFilter implements FileFilter {
         private final String[] patterns;
         
-        PatternedFileFilter(String[] patterns) {
+        ContainsFileFilter(String[] patterns) {
             this.patterns = patterns;
         }
 
@@ -97,13 +99,13 @@ public class RevertDeltaLogs {
         
     }
     
-    static class PrefixedPatternedFileFilter implements FileFilter {
-        private final PrefixedFileFilter prefixedFileFilter;
-        private final PatternedFileFilter patternedFileFilter;
+    static class RegexContainsFileFilter implements FileFilter {
+        private final RegexFileFilter regexFileFilter;
+        private final ContainsFileFilter containsFileFilter;
         
-        PrefixedPatternedFileFilter(String[] prefixes, String[] patterns) {
-            this.prefixedFileFilter = new PrefixedFileFilter(prefixes);
-            this.patternedFileFilter = new PatternedFileFilter(patterns);
+        RegexContainsFileFilter(String[] regexes, String[] patterns) {
+            this.regexFileFilter = new RegexFileFilter(regexes);
+            this.containsFileFilter = new ContainsFileFilter(patterns);
         }
 
         /**
@@ -111,7 +113,7 @@ public class RevertDeltaLogs {
          */
         @Override
         public boolean accept(File pathname) {
-            return (prefixedFileFilter.accept(pathname) && patternedFileFilter.accept(pathname));
+            return (regexFileFilter.accept(pathname) && containsFileFilter.accept(pathname));
         }
         
         
@@ -133,18 +135,22 @@ public class RevertDeltaLogs {
             public File getRenamedDir(File file, String rawDirname);
         }
         
-        private static final String VERIFIED_PREFIX = "_VERIFIED_";
-        private static final String PROCESSED_PREFIX = "_PROCESSED_";
-        private static final String PARSED_T_PREFIX = "_PARSED_t";
-        private static final String PARSED_PREFIX = "_PARSED_";
-        private static final String RAW_FILENAME_PATTERN = "t-\\d+-\\d+.txt";
-        private static final String RAW_DIRNAME_PATTERN = "dlog-\\d{8}-\\d{9}";
+        private static final String VERIFIED_DIRNAME_REGEX = "_VERIFIED_(dlog-\\d{8}-\\d{9})";
+        private static final Pattern VERIFIED_DIRNAME_PATTERN = Pattern.compile(VERIFIED_DIRNAME_REGEX);
+        private static final String PROCESSED_DIRNAME_REGEX = "_PROCESSED_(dlog-\\d{8}-\\d{9})";
+        private static final Pattern PROCESSED_DIRNAME_PATTERN = Pattern.compile(PROCESSED_DIRNAME_REGEX);
+        private static final String PARSED_T_FILENAME_REGEX = "_PARSED_(t-\\d+-\\d+.txt)";
+        private static final Pattern PARSED_T_FILENAME_PATTERN = Pattern.compile(PARSED_T_FILENAME_REGEX);
+        private static final String RAW_T_FILENAME_REGEX = "t-\\d+-\\d+.txt";
+        private static final Pattern RAW_T_FILENAME_PATTERN = Pattern.compile(PARSED_T_FILENAME_REGEX);
+        private static final String RAW_DIRNAME_REGEX = "dlog-\\d{8}-\\d{9}";
+        private static final Pattern RAW_DIRNAME_PATTERN = Pattern.compile(RAW_DIRNAME_REGEX);
 
         
         private static abstract class AbstractFromDirSelector implements FromDirSelector {
             protected FileFilter dirFileFilter;
             protected FileFilter fileFileFilter;
-            
+
             /**
              * @see edu.indiana.d2i.htrc.ingest.tools.RevertDeltaLogs.FromDirSelector#getDirFileFilter()
              */
@@ -168,12 +174,16 @@ public class RevertDeltaLogs {
             public String getRawFilename(File file) {
                 String name = file.getName();
                 String rawFilename = null;
-                
-                if (name.startsWith(PARSED_PREFIX)) {
-                    rawFilename = name.substring(PARSED_PREFIX.length());
-                } else if (name.matches(RAW_FILENAME_PATTERN)) {
-                    rawFilename = name;
-                } 
+
+                Matcher parsedTFilenameMatcher = PARSED_T_FILENAME_PATTERN.matcher(name);
+                if (parsedTFilenameMatcher.matches()) {
+                    rawFilename = parsedTFilenameMatcher.group(1);
+                } else {
+                    Matcher rawTFilenameMatcher = RAW_T_FILENAME_PATTERN.matcher(name);
+                    if (rawTFilenameMatcher.matches()) {
+                        rawFilename = name;
+                    } 
+                }
                 
                 return rawFilename;
             }
@@ -183,13 +193,21 @@ public class RevertDeltaLogs {
                 String name = file.getName();
                 String rawDirname = null;
                 
-                if (name.startsWith(PROCESSED_PREFIX)) {
-                    rawDirname = name.substring(PROCESSED_PREFIX.length());
-                } else if (name.startsWith(VERIFIED_PREFIX)) {
-                    rawDirname = name.substring(VERIFIED_PREFIX.length());
-                } else if (name.matches(RAW_DIRNAME_PATTERN)) {
-                    rawDirname = name;
+                Matcher verifiedDirnameMatcher = VERIFIED_DIRNAME_PATTERN.matcher(name);
+                if (verifiedDirnameMatcher.matches()) {
+                    rawDirname = verifiedDirnameMatcher.group(1);
+                } else {
+                    Matcher processedDirnameMatcher = PROCESSED_DIRNAME_PATTERN.matcher(name);
+                    if (processedDirnameMatcher.matches()) {
+                        rawDirname = processedDirnameMatcher.group(1);
+                    } else {
+                        Matcher rawDirnameMatcher = RAW_DIRNAME_PATTERN.matcher(name);
+                        if (rawDirnameMatcher.matches()) {
+                            rawDirname = name;
+                        }
+                    }
                 }
+
                 return rawDirname;
             }
             
@@ -198,17 +216,17 @@ public class RevertDeltaLogs {
         private static class VerifiedFromDirSelector extends AbstractFromDirSelector {
             
             VerifiedFromDirSelector() {
-                String[] dirPrefixes = new String[] {VERIFIED_PREFIX};
-                String[] filePrefixes = new String[] {PARSED_T_PREFIX};
-                this.dirFileFilter = new PrefixedFileFilter(dirPrefixes);
-                this.fileFileFilter = new PrefixedFileFilter(filePrefixes);
+                String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexFileFilter(dirRegexes);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
             
             VerifiedFromDirSelector(String[] patterns) {
-                String[] dirPrefixes = new String[] {VERIFIED_PREFIX};
-                String[] filePrefixes = new String[] {PARSED_T_PREFIX};
-                this.dirFileFilter = new PrefixedPatternedFileFilter(dirPrefixes, patterns);
-                this.fileFileFilter = new PrefixedFileFilter(filePrefixes);
+                String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexContainsFileFilter(dirRegexes, patterns);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
             
         }
@@ -216,41 +234,59 @@ public class RevertDeltaLogs {
         private static class ProcessedFromDirSelector extends AbstractFromDirSelector {
             
             ProcessedFromDirSelector() {
-                String[] dirPrefixes = new String[] {PROCESSED_PREFIX};
-                String[] filePrefixes = new String[] {PARSED_T_PREFIX};
-                this.dirFileFilter = new PrefixedFileFilter(dirPrefixes);
-                this.fileFileFilter = new PrefixedFileFilter(filePrefixes);
+                String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexFileFilter(dirRegexes);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
 
             }
             
             ProcessedFromDirSelector(String[] patterns) {
-                String[] dirPrefixes = new String[] {PROCESSED_PREFIX};
-                String[] filePrefixes = new String[] {PARSED_T_PREFIX};
-                this.dirFileFilter = new PrefixedPatternedFileFilter(dirPrefixes, patterns);
-                this.fileFileFilter = new PrefixedFileFilter(filePrefixes);
+                String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexContainsFileFilter(dirRegexes, patterns);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
 
         }
         
         private static class VerifiedOrProcessedFromDirSelector extends AbstractFromDirSelector {
             VerifiedOrProcessedFromDirSelector() {
-                String[] dirPrefixes = new String[] {PROCESSED_PREFIX, VERIFIED_PREFIX};
-                String[] filePrefixes = new String[] {PARSED_T_PREFIX};
-                this.dirFileFilter = new PrefixedFileFilter(dirPrefixes);
-                this.fileFileFilter = new PrefixedFileFilter(filePrefixes);
+                String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX, VERIFIED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexFileFilter(dirRegexes);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
             
             VerifiedOrProcessedFromDirSelector(String[] patterns) {
-                String[] dirPrefixes = new String[] {PROCESSED_PREFIX, VERIFIED_PREFIX};
-                String[] filePrefixes = new String[] {PARSED_T_PREFIX};
-                this.dirFileFilter = new PrefixedPatternedFileFilter(dirPrefixes, patterns);
-                this.fileFileFilter = new PrefixedFileFilter(filePrefixes);
+                String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX, VERIFIED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexContainsFileFilter(dirRegexes, patterns);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
 
             }
         }
     
+        private static class RawFromDirSelector extends AbstractFromDirSelector {
+            RawFromDirSelector() {
+                String[] dirRegexes = new String[] {RAW_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {RAW_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexFileFilter(dirRegexes);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
+            }
+            
+            RawFromDirSelector(String[] patterns) {
+                String[] dirRegexes = new String[] {RAW_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {RAW_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexContainsFileFilter(dirRegexes, patterns);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
+            }
+            
+        }
         private static class ProcessedToDirRenamer implements ToDirRenamer {
 
+            private static final String PARSED_PREFIX = "_PARSED_";
+            private static final String PROCESSED_PREFIX = "_PROCESSED_";
             /**
              * @see edu.indiana.d2i.htrc.ingest.tools.RevertDeltaLogs.FromDirSelectorFactory.ToDirRenamer#getRenamedFile(java.io.File, java.lang.String)
              */
@@ -272,6 +308,7 @@ public class RevertDeltaLogs {
              */
             @Override
             public File getRenamedDir(File file, String rawDirname) {
+                
                 File returnDir = null;
                 
                 if (rawDirname != null) {
@@ -330,6 +367,8 @@ public class RevertDeltaLogs {
                     fromDirSelector = new VerifiedFromDirSelector(patterns);
                 } else if (PROCESSED.equals(from)) {
                     fromDirSelector = new ProcessedFromDirSelector(patterns);
+                } else if (RAW.equals(from)) {
+                    fromDirSelector = new RawFromDirSelector(patterns);
                 }
             } else {
                 if (ALL.equals(from)) {
@@ -338,6 +377,8 @@ public class RevertDeltaLogs {
                     fromDirSelector = new VerifiedFromDirSelector();
                 } else if (PROCESSED.equals(from)) {
                     fromDirSelector = new ProcessedFromDirSelector();
+                } else if (RAW.equals(from)) {
+                    fromDirSelector = new RawFromDirSelector();
                 }
             }
             
@@ -375,6 +416,8 @@ public class RevertDeltaLogs {
         
         FromDirSelector fromDirSelector = null;
         ToDirRenamer toDirRenamer = null;
+
+        boolean special = false;
         
         try {
             int i = 0;
@@ -388,6 +431,8 @@ public class RevertDeltaLogs {
                 } else if ("-h".equals(args[i]) || "--help".equals(args[i])) {
                     printUsage();
                     System.exit(-1);
+                } else if ("-s".equals(args[i]) || "--special".equals(args[i])) {
+                    special = true;
                 } else {
                     targetSet.add(args[i]);
                 }
@@ -395,13 +440,18 @@ public class RevertDeltaLogs {
                 i++;
             }
             
-            if (!validFromSet.contains(from)) {
-                throw new IllegalArgumentException("Invalid \"from\" argument: " + from);
+            if (!special) {
+                if (!validFromSet.contains(from)) {
+                    throw new IllegalArgumentException("Invalid \"from\" argument: " + from);
+                }
+                if (!validToSet.contains(to)) {
+                    throw new IllegalArgumentException("Invalid \"to\" argument: " + to);
+                }
+            } else {
+                from = RAW;
+                to = "PROCESSED";
             }
-            if (!validToSet.contains(to)) {
-                throw new IllegalArgumentException("Invalid \"to\" argument: " + to);
-            }
-                
+            
             String[] patterns = targetSet.toArray(new String[0]);
             
             fromDirSelector = FromToFactory.getFromDirSelector(from, patterns);
