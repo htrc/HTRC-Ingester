@@ -137,12 +137,16 @@ public class RevertDeltaLogs {
         
         private static final String VERIFIED_DIRNAME_REGEX = "_VERIFIED_(dlog-\\d{8}-\\d{9})";
         private static final Pattern VERIFIED_DIRNAME_PATTERN = Pattern.compile(VERIFIED_DIRNAME_REGEX);
+        
         private static final String PROCESSED_DIRNAME_REGEX = "_PROCESSED_(dlog-\\d{8}-\\d{9})";
         private static final Pattern PROCESSED_DIRNAME_PATTERN = Pattern.compile(PROCESSED_DIRNAME_REGEX);
-        private static final String PARSED_T_FILENAME_REGEX = "_PARSED_(t-\\d+-\\d+.txt)";
+        
+        private static final String PARSED_T_FILENAME_REGEX = "_PARSED_(t-\\d+-\\d+\\.txt)";
         private static final Pattern PARSED_T_FILENAME_PATTERN = Pattern.compile(PARSED_T_FILENAME_REGEX);
-        private static final String RAW_T_FILENAME_REGEX = "t-\\d+-\\d+.txt";
-        private static final Pattern RAW_T_FILENAME_PATTERN = Pattern.compile(PARSED_T_FILENAME_REGEX);
+        
+        private static final String RAW_T_FILENAME_REGEX = "t-\\d+-\\d+\\.txt";
+        public static final Pattern RAW_T_FILENAME_PATTERN = Pattern.compile(RAW_T_FILENAME_REGEX);
+        
         private static final String RAW_DIRNAME_REGEX = "dlog-\\d{8}-\\d{9}";
         private static final Pattern RAW_DIRNAME_PATTERN = Pattern.compile(RAW_DIRNAME_REGEX);
 
@@ -397,7 +401,6 @@ public class RevertDeltaLogs {
     }
     
     
-    
     public static void main (String[] args) {
 
         final HashSet<String> validFromSet = new HashSet<String>();
@@ -449,7 +452,7 @@ public class RevertDeltaLogs {
                 }
             } else {
                 from = RAW;
-                to = "PROCESSED";
+                to = PROCESSED;
             }
             
             String[] patterns = targetSet.toArray(new String[0]);
