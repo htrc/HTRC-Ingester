@@ -53,6 +53,7 @@ import gov.loc.repository.pairtree.Pairtree;
  * @author Yiming Sun
  *
  */
+@Deprecated
 public class VerificationSpaceIDGenerator {
     
     static enum VerificationSpaceEnum {

@@ -43,7 +43,6 @@ import edu.indiana.d2i.htrc.ingest.Constants;
 import edu.indiana.d2i.htrc.ingest.JobQueue;
 import edu.indiana.d2i.htrc.ingest.PropertyReader;
 import edu.indiana.d2i.htrc.ingest.Util;
-import edu.indiana.d2i.htrc.ingest.verify.VerificationSpaceIDGenerator.VerificationSpaceEnum;
 import edu.indiana.d2i.htrc.ingest.verify.Verifier.VerificationLevelEnum;
 
 /**
@@ -79,10 +78,11 @@ public class Verificationer {
     
     public void verify() {
 
-        JobQueue<String> volumeIDQueue = new JobQueue<String>("VolumeIDQueue");
+        JobQueue<File> processedDeltaLogQueue = new JobQueue<File>("ProcessedDeltaLogQueue");
 
-        List<Thread> verifierThreadList = launchVerifierThreads(volumeIDQueue);
-        generateIDs(volumeIDQueue);
+        List<Thread> verifierThreadList = launchVerifierThreads(processedDeltaLogQueue);
+//        generateIDs(processedDeltaLogQueue);
+        listProcessedDeltaLogs(processedDeltaLogQueue);
         
         
         
@@ -97,19 +97,27 @@ public class Verificationer {
         markProcessedkDlogDirsAsDone();
     }
     
-    protected void generateIDs(JobQueue<String> volumeIDQueue) {
-        PropertyReader reader = PropertyReader.getInstance();
-        
-        String verificationSpaceString = reader.getProperty(Constants.PK_VERIFICATION_SPACE);
-        VerificationSpaceEnum verificationSpace = VerificationSpaceEnum.valueOf(verificationSpaceString.toUpperCase());
-        
+//    protected void generateIDs(JobQueue<String> volumeIDQueue) {
+//        PropertyReader reader = PropertyReader.getInstance();
+//        
+//        String verificationSpaceString = reader.getProperty(Constants.PK_VERIFICATION_SPACE);
+//        VerificationSpaceEnum verificationSpace = VerificationSpaceEnum.valueOf(verificationSpaceString.toUpperCase());
+//        
+//
+//        VerificationSpaceIDGenerator idGenerator = new VerificationSpaceIDGenerator(volumeIDQueue, verificationSpace);
+//        idGenerator.generateIDs();
+//
+//    }
 
-        VerificationSpaceIDGenerator idGenerator = new VerificationSpaceIDGenerator(volumeIDQueue, verificationSpace);
-        idGenerator.generateIDs();
-
+    protected void listProcessedDeltaLogs(JobQueue<File> processedDeltaLogQueue) {
+        ProcessedDeltaLogLister lister = new ProcessedDeltaLogLister(processedDeltaLogQueue);
+        Thread thread = new Thread(lister);
+        thread.start();
+        
     }
     
-    protected List<Thread> launchVerifierThreads(JobQueue<String> volumeIDQueue) {
+    
+    protected List<Thread> launchVerifierThreads(JobQueue<File> processedDeltaLogQueue) {
 
         List<Thread> threads = new ArrayList<Thread>();
 
@@ -126,7 +134,7 @@ public class Verificationer {
         
         
         for (int i = 0; i < threadCount; i++) {
-            Verifier verifier = new Verifier(volumeIDQueue, verificationLevel);
+            Verifier verifier = new Verifier(processedDeltaLogQueue, verificationLevel);
             Thread thread = new Thread(verifier);
             threads.add(thread);
             thread.start();

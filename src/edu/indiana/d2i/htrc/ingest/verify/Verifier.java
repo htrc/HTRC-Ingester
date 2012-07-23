@@ -31,8 +31,15 @@
  */
 package edu.indiana.d2i.htrc.ingest.verify;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
+import java.util.LinkedList;
+import java.util.List;
 
 import me.prettyprint.hector.api.exceptions.HTimedOutException;
 
@@ -42,6 +49,7 @@ import edu.indiana.d2i.htrc.ingest.JobQueue;
 import edu.indiana.d2i.htrc.ingest.Util;
 import edu.indiana.d2i.htrc.ingest.verify.HectorAccessor.PageChecksumMetadata;
 import edu.indiana.d2i.htrc.ingest.verify.HectorAccessor.PageSizeMetadata;
+import gov.loc.repository.pairtree.Pairtree;
 
 /**
  * @author Yiming Sun
@@ -72,22 +80,73 @@ public class Verifier implements Runnable {
     
     private VerificationLevelEnum verificationLevel;
     private HectorAccessor hectorAccessor;
-    private JobQueue<String> jobQueue;
+    private JobQueue<File> jobQueue;
+    private Pairtree pairtree;
 
-    protected Verifier(JobQueue<String> jobQueue, VerificationLevelEnum verificationLevel) {
+    protected Verifier(JobQueue<File> jobQueue, VerificationLevelEnum verificationLevel) {
         this.jobQueue = jobQueue;
         this.verificationLevel = verificationLevel;
         this.hectorAccessor = HectorAccessor.getInstance();
+        this.pairtree = new Pairtree();
         
     }
     
     public void run() {
         while (!jobQueue.isDone()) {
-            String volumeID = jobQueue.dequeue();
-            if (log.isTraceEnabled()) log.trace("volumeID dequeued: " + volumeID);
-            verify(volumeID);
+            File parsedDeltaLog = jobQueue.dequeue();
+            if (log.isTraceEnabled()) log.trace("parsedDeltaLog dequeued: " + parsedDeltaLog.getPath());
+            List<String> extractedVolumeIDs = extractVolumeIDs(parsedDeltaLog);
+            for (String volumeID : extractedVolumeIDs) {
+                verify(volumeID);
+            }
+            renameParsedFileToExtracted(parsedDeltaLog);
+            
         }
-   }
+    }
+    
+    protected List<String> extractVolumeIDs(File parsedDeltaLog) {
+        List<String> volumeIDList = new LinkedList<String>();
+
+        if (log.isTraceEnabled()) log.trace("extracting volumeID from " + parsedDeltaLog.getPath());
+        BufferedReader bufferedReader = null;
+        String prefix = null;
+        try {
+            bufferedReader = new BufferedReader(new FileReader(parsedDeltaLog));
+            String line = null;
+            do {
+                line = bufferedReader.readLine();
+                if (line != null) {
+                    if (line.endsWith(".zip")) {
+                        if (!line.startsWith("deleting ")) {
+                            int index = line.lastIndexOf('/');
+                            String zipFilename = line.substring(index + 1);
+                            String cleanedPartialVolumeID = zipFilename.substring(0, zipFilename.length() - ".zip".length());
+                            String uncleanedPartialVolumeID = pairtree.uncleanId(cleanedPartialVolumeID);
+                            String volumeID = prefix + uncleanedPartialVolumeID;
+                            if (log.isTraceEnabled()) log.trace("extracted volumeID: " + volumeID);
+                            volumeIDList.add(volumeID);
+                        }
+                    } else if (line.startsWith("PREFIX=")) {
+                        prefix = line.substring("PREFIX=".length());
+                    }
+                }
+            } while (line != null);
+        } catch (FileNotFoundException e) {
+            log.error("Delta log file not found " + parsedDeltaLog.getPath(), e);
+        } catch (IOException e) {
+            log.error("Error reading delta log file " + parsedDeltaLog.getPath(), e);
+        } finally {
+            if (bufferedReader != null) {
+                try {
+                    bufferedReader.close();
+                } catch (IOException e) {
+                    log.error("Failed to close BufferedReader on file " + parsedDeltaLog.getPath(), e);
+                }
+            }
+        }
+        return volumeIDList;
+
+    }
     
     public void verify(String volumeID) {
         
@@ -110,6 +169,24 @@ public class Verifier implements Runnable {
     }
     
 
+    protected void renameParsedFileToExtracted(File parsedFile) {
+        File parent = parsedFile.getParentFile();
+        String filename = parsedFile.getName();
+        
+        if (filename.startsWith("_PARSED_")) {
+            String newFilename = "_XTRACTED_" + filename.substring("_PARSED_".length());
+            File newFile = new File(parent, newFilename);
+            boolean renamed = parsedFile.renameTo(newFile);
+            if (renamed) {
+                
+                log.info("Renamed parsed deltalog file " + parsedFile.getPath() + " to " + newFile.getPath());
+                 
+            } else {
+                log.error("Failed to rename parsed deltalog file " + parsedFile.getPath() + " to " + newFile.getPath());
+            }
+        }
+    }
+    
     protected void verifyPages(String volumeID, int pageCount)  throws VerificationException, UnsupportedEncodingException, NoSuchAlgorithmException, HTimedOutException {
 
         
