@@ -85,7 +85,7 @@ public class Constants {
     public static final String PKN_RSYNC_EXTRA_FILE_PATH = "RSYNC_EXTRA_FILE_PATH";
     
     public static final String PK_PERFORM_VERIFICATION = "PERFORM_VERIFICATION";
-    public static final String PK_VERIFICATION_SPACE = "VERIFICATION_SPACE";
+//    public static final String PK_VERIFICATION_SPACE = "VERIFICATION_SPACE";
     public static final String PK_VERIFICATION_PROPORTION = "VERFICATION_PROPORTION";
     public static final String PK_DELTALOG_VOLUMEID_EXTRACTOR_THREAD_COUNT = "DELTALOG_VOLUMEID_EXTRACTOR_THREAD_COUNT";
     public static final String PK_VERIFICATION_THREAD_COUNT = "VERIFICATION_THREAD_COUNT";

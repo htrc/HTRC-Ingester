@@ -144,6 +144,9 @@ public class RevertDeltaLogs {
         private static final String PARSED_T_FILENAME_REGEX = "_PARSED_(t-\\d+-\\d+\\.txt)";
         private static final Pattern PARSED_T_FILENAME_PATTERN = Pattern.compile(PARSED_T_FILENAME_REGEX);
         
+        private static final String EXTRACTED_T_FILENAME_REGEX = "_XTRACTED_(t-\\d+-\\d+\\.txt)";
+        private static final Pattern EXTRACTED_T_FILENAME_PATTERN = Pattern.compile(EXTRACTED_T_FILENAME_REGEX);
+
         private static final String RAW_T_FILENAME_REGEX = "t-\\d+-\\d+\\.txt";
         public static final Pattern RAW_T_FILENAME_PATTERN = Pattern.compile(RAW_T_FILENAME_REGEX);
         
@@ -180,13 +183,19 @@ public class RevertDeltaLogs {
                 String rawFilename = null;
 
                 Matcher parsedTFilenameMatcher = PARSED_T_FILENAME_PATTERN.matcher(name);
+                
                 if (parsedTFilenameMatcher.matches()) {
                     rawFilename = parsedTFilenameMatcher.group(1);
                 } else {
-                    Matcher rawTFilenameMatcher = RAW_T_FILENAME_PATTERN.matcher(name);
-                    if (rawTFilenameMatcher.matches()) {
-                        rawFilename = name;
-                    } 
+                    Matcher extractedTFilenameMatcher = EXTRACTED_T_FILENAME_PATTERN.matcher(name);
+                    if (extractedTFilenameMatcher.matches()) {
+                        rawFilename = extractedTFilenameMatcher.group(1);
+                    } else {
+                        Matcher rawTFilenameMatcher = RAW_T_FILENAME_PATTERN.matcher(name);
+                        if (rawTFilenameMatcher.matches()) {
+                            rawFilename = name;
+                        }
+                    }
                 }
                 
                 return rawFilename;
@@ -221,14 +230,14 @@ public class RevertDeltaLogs {
             
             VerifiedFromDirSelector() {
                 String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
-                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX};
                 this.dirFileFilter = new RegexFileFilter(dirRegexes);
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
             
             VerifiedFromDirSelector(String[] patterns) {
                 String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
-                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX};
                 this.dirFileFilter = new RegexContainsFileFilter(dirRegexes, patterns);
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
@@ -257,14 +266,14 @@ public class RevertDeltaLogs {
         private static class VerifiedOrProcessedFromDirSelector extends AbstractFromDirSelector {
             VerifiedOrProcessedFromDirSelector() {
                 String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX, VERIFIED_DIRNAME_REGEX};
-                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX, EXTRACTED_T_FILENAME_REGEX};
                 this.dirFileFilter = new RegexFileFilter(dirRegexes);
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
             
             VerifiedOrProcessedFromDirSelector(String[] patterns) {
                 String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX, VERIFIED_DIRNAME_REGEX};
-                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
+                String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX, EXTRACTED_T_FILENAME_REGEX};
                 this.dirFileFilter = new RegexContainsFileFilter(dirRegexes, patterns);
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
 
