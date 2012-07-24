@@ -243,6 +243,22 @@ public class RevertDeltaLogs {
             }
             
         }
+        
+        private static class TwoStepVerifiedFromDirSelector extends AbstractFromDirSelector {
+            TwoStepVerifiedFromDirSelector() {
+                String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX, PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexFileFilter(dirRegexes);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
+            }
+            
+            TwoStepVerifiedFromDirSelector(String[] patterns) {
+                String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
+                String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX, PARSED_T_FILENAME_REGEX};
+                this.dirFileFilter = new RegexContainsFileFilter(dirRegexes, patterns);
+                this.fileFileFilter = new RegexFileFilter(fileRegexes);
+            }
+        }
     
         private static class ProcessedFromDirSelector extends AbstractFromDirSelector {
             
@@ -371,13 +387,17 @@ public class RevertDeltaLogs {
             
         }
     
-        static FromDirSelector getFromDirSelector(String from, String[] patterns) {
+        static FromDirSelector getFromDirSelector(String from, String to, String[] patterns) {
             FromDirSelector fromDirSelector = null;
             if (patterns != null && patterns.length > 0) {
                 if (ALL.equals(from)) {
                     fromDirSelector = new VerifiedOrProcessedFromDirSelector(patterns);
                 } else if (VERIFIED.equals(from)) {
-                    fromDirSelector = new VerifiedFromDirSelector(patterns);
+                    if (RAW.equals(to)) {
+                        fromDirSelector = new TwoStepVerifiedFromDirSelector(patterns);
+                    } else {
+                        fromDirSelector = new VerifiedFromDirSelector(patterns);
+                    }
                 } else if (PROCESSED.equals(from)) {
                     fromDirSelector = new ProcessedFromDirSelector(patterns);
                 } else if (RAW.equals(from)) {
@@ -387,7 +407,11 @@ public class RevertDeltaLogs {
                 if (ALL.equals(from)) {
                     fromDirSelector = new VerifiedOrProcessedFromDirSelector();
                 } else if (VERIFIED.equals(from)) {
-                    fromDirSelector = new VerifiedFromDirSelector();
+                    if (RAW.equals(to)) {
+                        fromDirSelector = new TwoStepVerifiedFromDirSelector();
+                    } else {
+                        fromDirSelector = new VerifiedFromDirSelector();
+                    }
                 } else if (PROCESSED.equals(from)) {
                     fromDirSelector = new ProcessedFromDirSelector();
                 } else if (RAW.equals(from)) {
@@ -398,7 +422,7 @@ public class RevertDeltaLogs {
             return fromDirSelector;
         }
     
-        static ToDirRenamer  getToDirRenamer(String to) {
+        static ToDirRenamer  getToDirRenamer(String to, String from) {
             ToDirRenamer toDirRenamer = null;
             if (PROCESSED.equals(to)) {
                 toDirRenamer = new ProcessedToDirRenamer();
@@ -407,6 +431,7 @@ public class RevertDeltaLogs {
             }
             return toDirRenamer;
         }
+        
     }
     
     
@@ -459,6 +484,7 @@ public class RevertDeltaLogs {
                 if (!validToSet.contains(to)) {
                     throw new IllegalArgumentException("Invalid \"to\" argument: " + to);
                 }
+                
             } else {
                 from = RAW;
                 to = PROCESSED;
@@ -466,9 +492,8 @@ public class RevertDeltaLogs {
             
             String[] patterns = targetSet.toArray(new String[0]);
             
-            fromDirSelector = FromToFactory.getFromDirSelector(from, patterns);
-            toDirRenamer = FromToFactory.getToDirRenamer(to);
-
+            fromDirSelector = FromToFactory.getFromDirSelector(from, to, patterns);
+            toDirRenamer = FromToFactory.getToDirRenamer(to, from);
             
             PropertyReader propertyReader = PropertyReader.getInstance();
             String deltaLogRootPath = propertyReader.getProperty(Constants.PK_DELTA_LOG_ROOT);
