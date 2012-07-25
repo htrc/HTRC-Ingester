@@ -109,10 +109,13 @@ public class ReingestToolBridge {
             
         }
         
+        hectorManager.shutdown();
+        
     }
     
     protected void deleteVolumeFromCassandra(String volumeID, HectorManager hectorManager) {
         VolumeDeletionInfo volumeDeletionInfo = new VolumeDeletionInfo(volumeID, CopyrightEnum.PUBLIC_DOMAIN);
+        volumeDeletionInfo.setIsDeleteVolume(true);
         List<VolumeDeletionInfo> deleteList = new ArrayList<VolumeDeletionInfo>();
         deleteList.add(volumeDeletionInfo);
         hectorManager.delete(deleteList);
