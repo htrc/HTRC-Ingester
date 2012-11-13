@@ -27,7 +27,9 @@
 
 
 /**
- * 
+ * This utility is for re-ingest volumes that were not properly ingested during the bulk operation.  The standard ingest process relies on the
+ * delta logs generated from rsync and is not easy to work with when a subset of volumes need to be reingested.  This tool takes a list of volume
+ * IDs and ingests them.
  */
 package edu.indiana.d2i.htrc.ingest.tools;
 
@@ -36,7 +38,7 @@ import java.io.FileReader;
 import java.util.LinkedList;
 import java.util.List;
 
-import edu.indiana.d2i.htrc.ingest.cassandra.ReingestToolBridge;
+import edu.indiana.d2i.htrc.ingest.cassandra.HectorToolBridge;
 
 /**
  * @author Yiming Sun
@@ -61,8 +63,9 @@ public class Reingester {
         } while (line != null);
         reader.close();
         
-        ReingestToolBridge reingester = new ReingestToolBridge(volumeList);
-        reingester.reingest();
+        HectorToolBridge reingester = new HectorToolBridge();
+        reingester.reingest(volumeList);
+        reingester.shutdown();
     }
 
     

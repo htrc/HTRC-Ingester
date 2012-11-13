@@ -50,6 +50,7 @@ import java.util.zip.ZipInputStream;
 
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.cassandra.service.CassandraHostConfigurator;
+import me.prettyprint.cassandra.service.StringKeyIterator;
 import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
 import me.prettyprint.cassandra.service.template.ColumnFamilyUpdater;
 import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
@@ -702,6 +703,11 @@ public class HectorManager {
     }
     
 
+    public StringKeyIterator getVolumeContentKeyIterator() {
+        Keyspace keyspace = HFactory.createKeyspace(keyspaceName, cluster);
+        StringKeyIterator keyIterator = new StringKeyIterator(keyspace, volumeContentsCFName);
+        return keyIterator;
+    }
     
     public void shutdown() {
         cluster.getConnectionManager().shutdown();

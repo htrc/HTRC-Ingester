@@ -55,21 +55,25 @@ import java.util.List;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 
+import me.prettyprint.cassandra.service.KeyIterator;
+
 /**
  * @author Yiming Sun
  *
  */
-public class ReingestToolBridge {
+public class HectorToolBridge {
     
-    protected List<String> volumeList;
+//    protected List<String> volumeList;
+    protected final HectorManager hectorManager;
     
-    public ReingestToolBridge(List<String> volumeList) {
-        this.volumeList = volumeList;
+    public HectorToolBridge() {
+//        this.volumeList = volumeList;
+        this.hectorManager = HectorManager.getInstance();
     }
     
-    public void reingest() {
+    public void reingest(List<String> volumeList) {
         XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
-        HectorManager hectorManager = HectorManager.getInstance();
+//        HectorManager hectorManager = HectorManager.getInstance();
         Pairtree pairtree = new Pairtree();
         PropertyReader reader = PropertyReader.getInstance();
         String destRoot = reader.getProperty(Constants.PK_RSYNC_DEST_ROOT);
@@ -109,8 +113,20 @@ public class ReingestToolBridge {
             
         }
         
-        hectorManager.shutdown();
+//        hectorManager.shutdown();
         
+    }
+    
+    public KeyIterator<String> getKeyIterator() {
+        KeyIterator<String> keyIterator = null;
+        
+        keyIterator = hectorManager.getVolumeContentKeyIterator();
+        
+        return keyIterator;
+    }
+    
+    public void shutdown() {
+        hectorManager.shutdown();
     }
     
     protected void deleteVolumeFromCassandra(String volumeID, HectorManager hectorManager) {
