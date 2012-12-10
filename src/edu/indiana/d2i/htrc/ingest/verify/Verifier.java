@@ -56,7 +56,7 @@ import gov.loc.repository.pairtree.Pairtree;
  *
  */
 public class Verifier implements Runnable {
-    static enum VerificationLevelEnum {
+    public static enum VerificationLevelEnum {
         VERIFY_PAGE_COUNT(0),
         VERIFY_PAGE_SIZE(1),
         VERIFY_PAGE_CHECKSUM(2);
@@ -78,10 +78,10 @@ public class Verifier implements Runnable {
     
     private static Logger log = Logger.getLogger(Verifier.class);
     
-    private VerificationLevelEnum verificationLevel;
-    private HectorAccessor hectorAccessor;
-    private JobQueue<File> jobQueue;
-    private Pairtree pairtree;
+    protected VerificationLevelEnum verificationLevel;
+    protected HectorAccessor hectorAccessor;
+    protected JobQueue<File> jobQueue;
+    protected Pairtree pairtree;
 
     protected Verifier(JobQueue<File> jobQueue, VerificationLevelEnum verificationLevel) {
         this.jobQueue = jobQueue;

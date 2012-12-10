@@ -37,17 +37,11 @@
  */
 package edu.indiana.d2i.htrc.ingest.cassandra;
 
-import edu.indiana.d2i.htrc.ingest.Constants;
-import edu.indiana.d2i.htrc.ingest.Constants.CopyrightEnum;
-import edu.indiana.d2i.htrc.ingest.PropertyReader;
-import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogParser.VolumeDeletionInfo;
-import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogParser.VolumeUpdateInfo;
-import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogProcessor.VolumeRecord;
-import gov.loc.repository.pairtree.Pairtree;
-
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,12 +50,55 @@ import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 
 import me.prettyprint.cassandra.service.KeyIterator;
+import me.prettyprint.hector.api.exceptions.HTimedOutException;
+import edu.indiana.d2i.htrc.ingest.Constants;
+import edu.indiana.d2i.htrc.ingest.Constants.CopyrightEnum;
+import edu.indiana.d2i.htrc.ingest.PropertyReader;
+import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogParser.VolumeDeletionInfo;
+import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogParser.VolumeUpdateInfo;
+import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogProcessor.VolumeRecord;
+import edu.indiana.d2i.htrc.ingest.verify.VerificationException;
+import edu.indiana.d2i.htrc.ingest.verify.Verifier;
+import edu.indiana.d2i.htrc.ingest.verify.Verifier.VerificationLevelEnum;
+import gov.loc.repository.pairtree.Pairtree;
 
 /**
  * @author Yiming Sun
  *
  */
 public class HectorToolBridge {
+    
+    protected static class SyncVerifier extends Verifier {
+
+        /**
+         * @param jobQueue
+         * @param verificationLevel
+         */
+        protected SyncVerifier(VerificationLevelEnum verificationLevel) {
+            super(null, verificationLevel);
+        }
+        
+        public void verify(String volumeID) {
+            try {
+
+                int pageCount = hectorAccessor.retrieveVolumePageCount(volumeID);
+                verifyPages(volumeID, pageCount);
+                System.out.println("volume " + volumeID + " verified at level " + verificationLevel.toString());
+                
+            } catch (VerificationException e) {
+                e.printStackTrace(System.err);
+            } catch (UnsupportedEncodingException e) {
+                e.printStackTrace(System.err);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace(System.err);
+            } catch (HTimedOutException e) {
+                e.printStackTrace(System.err);
+            }
+            
+
+        }
+        
+    }
     
 //    protected List<String> volumeList;
     protected final HectorManager hectorManager;
@@ -72,6 +109,8 @@ public class HectorToolBridge {
     }
     
     public void reingest(List<String> volumeList) {
+        SyncVerifier verifier = new SyncVerifier(VerificationLevelEnum.VERIFY_PAGE_CHECKSUM);
+        
         XMLInputFactory xmlInputFactory = XMLInputFactory.newInstance();
 //        HectorManager hectorManager = HectorManager.getInstance();
         Pairtree pairtree = new Pairtree();
@@ -108,6 +147,7 @@ public class HectorToolBridge {
                 VolumeUpdateInfo volumeUpdateInfo = new VolumeUpdateInfo(volumeID, headlessCleanedID, parentPathBuilder.toString());
                 volumeUpdateInfo.setCopyright(CopyrightEnum.PUBLIC_DOMAIN);
                 updateVolumeToCassandra(metsFile, volumeID, volumeUpdateInfo, xmlInputFactory, hectorManager);
+                verifier.verify(volumeID);
             }
             
             
