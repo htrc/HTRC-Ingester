@@ -56,6 +56,7 @@ import me.prettyprint.hector.api.query.QueryResult;
 import me.prettyprint.hector.api.query.SliceQuery;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
 
 import edu.indiana.d2i.htrc.ingest.Constants;
 import edu.indiana.d2i.htrc.ingest.PropertyReader;
@@ -164,7 +165,9 @@ public class HectorAccessor {
     
     private HectorAccessor() {
         PropertyReader propertyReader = PropertyReader.getInstance();
-        
+        String log4PropertiesPath = propertyReader.getProperty(Constants.PK_LOG4J_PROPERTIES_PATH);
+        PropertyConfigurator.configure(log4PropertiesPath);
+
         String cassandraAddress = propertyReader.getProperty(Constants.PK_CASSANDRA_HOST);
         
         cluster = HFactory.getOrCreateCluster(propertyReader.getProperty(Constants.PK_CASSANDRA_CLUSTER_NAME), new CassandraHostConfigurator(cassandraAddress));
