@@ -31,13 +31,11 @@
  */
 package edu.indiana.d2i.htrc.ingest.cassandra;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,13 +115,7 @@ public class HectorManager {
         maxFailureDelay = Long.parseLong(propertyReader.getProperty(Constants.PK_UPDATE_FAILURE_BACK_OFF_MAX_DELAY_IN_MS));
         
     }
-    
-    protected <S> Mutator<S> createMutator(Serializer<S> serializer) {
-        Keyspace keyspace = HFactory.createKeyspace(keyspaceName, cluster);
-        Mutator<S> mutator = HFactory.createMutator(keyspace, serializer);
-        return mutator;
-    }
-    
+
     protected <K, N> ColumnFamilyTemplate<K, N> createColumnFamilyTemplate(Serializer<K> keySerializer, Serializer<N> columnNameSerializer, String columnFamilyName) {
         Keyspace keyspace = HFactory.createKeyspace(keyspaceName, cluster);
         ColumnFamilyTemplate<K, N> columnFamilyTemplate = new ThriftColumnFamilyTemplate<K, N>(keyspace, columnFamilyName, keySerializer, columnNameSerializer);
@@ -135,7 +127,7 @@ public class HectorManager {
         int attemptsLeft = maxAttempts;
         long failureDelay = initFailureDelay;
         
-        Serializer<String> stringSerializer = new StringSerializer();
+        Serializer<String> stringSerializer = StringSerializer.get();
         
         ColumnFamilyTemplate<String, String> volumeContentsCFTemplate = createColumnFamilyTemplate(stringSerializer, stringSerializer, volumeContentsCFName);
         volumeContentsCFTemplate.setBatched(true);
@@ -157,15 +149,8 @@ public class HectorManager {
                 volumeContentsCFMutator.addDeletion(volumeID, volumeContentsCFName);
                 log.info("row marked for delete for: " + volumeID);
                 
-//                ColumnFamilyUpdater<String, String> allCollectionDeletionUpdater = collectionsCFTemplate.createUpdater("ALL");
-//                allCollectionDeletionUpdater.deleteColumn(volumeID);
-//                if (log.isTraceEnabled()) log.trace("volume marked for delete from ALL collection: " + volumeID);
-                
                 String copyrightString = volumeDeletionInfo.getCopyright().toString();
                 
-//                ColumnFamilyUpdater<String, String> copyrightBasedCollectionDeletionUpdater = collectionsCFTemplate.createUpdater(copyrightString);
-//                copyrightBasedCollectionDeletionUpdater.deleteColumn(volumeID);
-//                
                 collectionsCFMutator.addDeletion("ALL", collectionsCFName, volumeID, stringSerializer);
                 log.info("volume marked for delete from ALL collection: " + volumeID);
                 
@@ -394,8 +379,6 @@ public class HectorManager {
             FileInputStream fileInputStream = new FileInputStream(volumeZipPath);
             ZipInputStream zipInputStream = new ZipInputStream(fileInputStream);
             
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(zipInputStream));
-            
             ZipEntry zipEntry = null;
             
             do {
@@ -450,7 +433,7 @@ public class HectorManager {
                                     if (log.isTraceEnabled()) log.trace("entryFilename: " + entryFilename + "  sequence: " + sequence);
                                     pageRecord.setSequence(sequence);
                                     
-                                    // STEP 5 - convert to string and count character count
+                                    // STEP 5 - convert to string and count character count -- NOTE: some pages are not encoded in utf-8, but there is no charset indicator, so assume utf-8 for all for now
                                     String pageContentsString = new String(pageContents, "utf-8");
                                     pageRecord.setCharacterCount(pageContentsString.length());
                                     
@@ -458,7 +441,7 @@ public class HectorManager {
                                     
                                     // STEP 7 - push page contents to noSQL
                                     try {
-                                        updatePage(pageContentsString, volumeID, pageRecord, featuredPagesMap, volumeCFTemplate);
+                                        updatePage(pageContents, volumeID, pageRecord, featuredPagesMap, volumeCFTemplate);
                                         if (log.isTraceEnabled()) log.trace("successfully updated page " + entryFilename + " for volume " + volumeID);
                                         
                                         hasValidPage = true;
@@ -492,9 +475,10 @@ public class HectorManager {
             log.info("Successfully pushed all pages for volume " + volumeID);
 
             try {
-                bufferedReader.close();
+//                bufferedReader.close();
+                zipInputStream.close();
             } catch (IOException e) {
-                log.error("Failed to close BufferedReader on " + volumeZipPath, e);
+                log.error("Failed to close ZipInputStream on " + volumeZipPath, e);
             }
 
             if (hasValidPage) {
@@ -530,25 +514,6 @@ public class HectorManager {
         int pageCount = volumeRecord.getPageCount();
         volumeMetadataUpdater.setInteger(Constants.CN_VOLUME_PAGECOUNT, pageCount);
 
-// No longer need to have redundant page-level metadata because we are not using supercolumn anymore, so all metadata and page contents are laid flat in the row  
-        
-//        Set<String> pageFilenameSet = volumeRecord.getPageFilenameSet();
-//        for (String pageFilename : pageFilenameSet) {
-//            PageRecord pageRecord = volumeRecord.getPageRecordByFilename(pageFilename);
-//            if (pageRecord != null) {
-//                String sequence = pageRecord.getSequence();
-//                long byteCount = pageRecord.getByteCount();
-//                int characterCount = pageRecord.getCharacterCount();
-//                
-//                volumeMetadataUpdater.setLong(Constants.CN_VOLUME_PREFIX + sequence + Constants.CN_BYTECOUNT_SUFFIX, byteCount);
-//                volumeMetadataUpdater.setInteger(Constants.CN_VOLUME_PREFIX + sequence + Constants.CN_CHARACTERCOUNT_SUFFIX, characterCount);
-//                
-//            } else {
-//                log.warn("no pageRecord found by pageFilename " + pageFilename + " for volume " + volumeID);
-//            }
-//        }
-
-        
         // However, page feature set is still needed on the volume level because this lists all pages with one particular feature where as the page-level metadata is for each page only
         Set<String> featureSet = featuredPagesMap.keySet();
         if (featureSet != null) {
@@ -635,7 +600,7 @@ public class HectorManager {
     }
     
 
-    protected void updatePage(String pageContentsString, String volumeID, PageRecord pageRecord, HashMap<String, List<String>> featuredPagesMap, ColumnFamilyTemplate<String, String> volumeCFTemplate) throws HInvalidRequestException, HTimedOutException {
+    protected void updatePage(byte[] pageContent, String volumeID, PageRecord pageRecord, HashMap<String, List<String>> featuredPagesMap, ColumnFamilyTemplate<String, String> volumeCFTemplate) throws HInvalidRequestException, HTimedOutException {
         
         boolean successful = false;
         int attemptsLeft = maxAttempts;
@@ -644,7 +609,7 @@ public class HectorManager {
         String pageID = pageRecord.getSequence();
         ColumnFamilyUpdater<String, String> pageUpdater = volumeCFTemplate.createUpdater(volumeID);
         
-        pageUpdater.setString(pageID + Constants.CN_CONTENTS_SUFFIX, pageContentsString);
+        pageUpdater.setByteArray(pageID + Constants.CN_CONTENTS_SUFFIX, pageContent);
         
         long byteCount = pageRecord.getByteCount();
         pageUpdater.setLong(pageID + Constants.CN_BYTECOUNT_SUFFIX, byteCount);

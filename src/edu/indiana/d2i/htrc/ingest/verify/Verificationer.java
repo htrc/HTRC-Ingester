@@ -81,7 +81,6 @@ public class Verificationer {
         JobQueue<File> processedDeltaLogQueue = new JobQueue<File>("ProcessedDeltaLogQueue");
 
         List<Thread> verifierThreadList = launchVerifierThreads(processedDeltaLogQueue);
-//        generateIDs(processedDeltaLogQueue);
         listProcessedDeltaLogs(processedDeltaLogQueue);
         
         
@@ -97,18 +96,6 @@ public class Verificationer {
         markProcessedkDlogDirsAsDone();
     }
     
-//    protected void generateIDs(JobQueue<String> volumeIDQueue) {
-//        PropertyReader reader = PropertyReader.getInstance();
-//        
-//        String verificationSpaceString = reader.getProperty(Constants.PK_VERIFICATION_SPACE);
-//        VerificationSpaceEnum verificationSpace = VerificationSpaceEnum.valueOf(verificationSpaceString.toUpperCase());
-//        
-//
-//        VerificationSpaceIDGenerator idGenerator = new VerificationSpaceIDGenerator(volumeIDQueue, verificationSpace);
-//        idGenerator.generateIDs();
-//
-//    }
-
     protected void listProcessedDeltaLogs(JobQueue<File> processedDeltaLogQueue) {
         ProcessedDeltaLogLister lister = new ProcessedDeltaLogLister(processedDeltaLogQueue);
         Thread thread = new Thread(lister);

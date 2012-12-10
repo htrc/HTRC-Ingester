@@ -237,6 +237,10 @@ public class Verifier implements Runnable {
         if (actualCharacterCount != pageSizeMetadata.getCharacterCount()) {
             throw new VerificationException("Actual character count and recorded page character count mismatch", volumeID, pageSequence);
         }
+        
+        if (actualByteCount != pageContentString.getBytes("utf-8").length) {
+            throw new VerificationException("Actual byte count and UTF-8 string converted byte count mismatch", volumeID, pageSequence);
+        }
 
     }
     
