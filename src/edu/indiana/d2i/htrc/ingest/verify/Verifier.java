@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2012 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -239,7 +239,9 @@ public class Verifier implements Runnable {
         }
         
         if (actualByteCount != pageContentString.getBytes("utf-8").length) {
-            throw new VerificationException("Actual byte count and UTF-8 string converted byte count mismatch", volumeID, pageSequence);
+//            throw new VerificationException("Actual byte count and UTF-8 string converted byte count mismatch", volumeID, pageSequence);
+            log.warn("Two way conversion from raw bytes to UTF-8 String and back to bytes causes information loss. Volume: " + volumeID + " page: " + pageSequence);
+
         }
 
     }
