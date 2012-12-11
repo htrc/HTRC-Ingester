@@ -34,6 +34,12 @@ package edu.indiana.d2i.htrc.ingest.tools;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 /**
@@ -55,10 +61,14 @@ public class ExtractVIDFromErrorLogs {
         
         String errorLogFile = args[0];
         String volumeListFile = args[1];
+        boolean withPage = args.length > 2;
+        
+        HashMap<String, Set<String>> idMap = new HashMap<String, Set<String>>();
         
         BufferedReader reader = new BufferedReader(new FileReader(errorLogFile));
-        FileWriter writer = new FileWriter(volumeListFile);
+//        FileWriter writer = new FileWriter(volumeListFile);
         
+        String currentVolumeID = null;
         String line = null;
         do {
             line = reader.readLine();
@@ -66,24 +76,62 @@ public class ExtractVIDFromErrorLogs {
                 StringTokenizer tokenizer = new StringTokenizer(line);
                 while (tokenizer.hasMoreTokens()) {
                     String token = tokenizer.nextToken();
-                    if ("Volume:".equals(token)) {
-                        String volumeID = tokenizer.nextToken();
-                        writer.write(volumeID);
-                        writer.write("\n");
-                        break;
+                    if ("Volume:".equalsIgnoreCase(token)) {
+                        currentVolumeID = tokenizer.nextToken();
+                        Set<String> set = idMap.get(currentVolumeID);
+                        if (set == null) {
+                            set = new HashSet<String>();
+                            idMap.put(currentVolumeID, set);
+                        }
+                        
+                        if (!withPage) {
+                            break;
+                        }
+                    } else if ("Page:".equalsIgnoreCase(token)) {
+                        String pageSequence = tokenizer.nextToken();
+                        Set<String> set = idMap.get(currentVolumeID);
+                        set.add(pageSequence);
                     }
                 }
             }
         } while (line != null);
         
-        writer.close();
+//        writer.close();
         reader.close();
         
+        FileWriter writer = new FileWriter(volumeListFile);
+        Set<String> keySet = idMap.keySet();
+        List<String> volumeIDList = new ArrayList<String> (keySet.size());
+        volumeIDList.addAll(keySet);
+        Collections.sort(volumeIDList);
+        for (String volumeID : volumeIDList) {
+            writer.write(volumeID);
+            if (withPage) {
+                Set<String> set = idMap.get(volumeID);
+                if (set != null && !set.isEmpty()) {
+                    List<String> pageSequenceList = new ArrayList<String>(set);
+                    Collections.sort(pageSequenceList);
+
+                    writer.write(" ");
+                    boolean first = true;
+                    for (String pageSequence : pageSequenceList) {
+                        if (!first) {
+                            writer.write(",");
+                        }
+                        writer.write(pageSequence);
+                        first = false;
+                    }
+                }
+            }
+            writer.write("\n");
+        }
+        writer.close();
 
     }
 
     private static void printUsage() {
-        System.out.println("Usage: ExtractVIDFromErrorLogs <error log file>  <volume list file>");
+        System.out.println("Usage: ExtractVIDFromErrorLogs <error log file>  <volume list file> [--with-pages]");
+        System.out.println("Assumes volume IDs are preceeded with 'Volume: ' and page sequence numbers with 'Page: '");
     }
 }
 
