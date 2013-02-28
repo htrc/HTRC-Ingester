@@ -46,6 +46,8 @@ import org.junit.Test;
 import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogProcessor.VolumeRecord;
 import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogProcessor.VolumeRecord.PageRecord;
 
+
+
 /**
  * @author Yiming Sun
  *
@@ -62,7 +64,7 @@ public class TestMETSParser {
     public void setup() {
         volumeRecord = new VolumeRecord(TEST_VOLUME_ID);
         xmlInputFactory = XMLInputFactory.newInstance();
-        metsFile = new File("resources/test/39002034644600.mets.xml");
+        metsFile = new File("src/test/resources/39002034644600.mets.xml");
     }
     
     @Test
