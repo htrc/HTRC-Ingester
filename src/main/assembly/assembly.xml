@@ -14,19 +14,10 @@
         <include>classes*</include>
         <include>classes/**/*</include>
       </includes>
-      <excludes>
-        <exclude>classes/conf*</exclude>
-        <exclude>classes/conf/**/*</exclude>
-        <exclude>classes/*.sh</exclude>
-      </excludes>
     </fileSet>
     <fileSet>
       <directory>${project.build.scriptSourceDirectory}</directory>
       <outputDirectory>${artifactId}</outputDirectory>
-      <includes>
-        <include>*.sh</include>
-        <include>conf/*</include>
-      </includes>
     </fileSet>
   </fileSets>
   <dependencySets>
