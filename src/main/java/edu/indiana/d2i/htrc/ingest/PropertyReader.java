@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,17 +8,17 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
 # -----------------------------------------------------------------
 #
-# Project: rsync_test
+# Project: Ingester Service
 # File:  PropertyReader.java
-# Description:  
+# Description: This class reads property name value pairs from a properties file and stores them in memory
 #
 # -----------------------------------------------------------------
 # 
@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.Properties;
 
 /**
+ * This class reads property name value pairs from a properties file and stores them in memory
  * @author Yiming Sun
  *
  */
@@ -46,6 +47,9 @@ public class PropertyReader {
     
     private static Properties properties;
     
+    /**
+     * Private constructor
+     */
     private PropertyReader() {
         String propertyLocation = System.getProperty(PROPERTIES_LOCATION);
         System.out.println("propertyLocation = " + propertyLocation);
@@ -70,10 +74,19 @@ public class PropertyReader {
         
     }
 
+    /**
+     * Method to get the singleton instance of the PropertyReader object
+     * @return the singleton instance of the PropertyReader object
+     */
     public static PropertyReader getInstance() {
         return reader;
     }
     
+    /**
+     * Method to return the value of a property
+     * @param fieldName name of the property
+     * @return value of the property, or <code>null</code> is the property does not exist
+     */
     public String getProperty(String fieldName) { // throws Exception {
         if (properties.containsKey(fieldName)) {
             return properties.getProperty(fieldName);
@@ -82,6 +95,11 @@ public class PropertyReader {
         }
     }
     
+    /**
+     * Method to set a property name-value pair
+     * @param fieldName name of the property
+     * @param fieldValue value of the property
+     */
     public void setProperty(String fieldName, String fieldValue) {
         properties.put(fieldName, fieldValue);
     }

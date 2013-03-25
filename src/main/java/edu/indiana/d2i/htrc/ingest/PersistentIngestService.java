@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  PersistentIngestService.java
-# Description:  
+# Description: This class is an entry point of the Ingester service to launch a persistent and periodical ingest process.
 #
 # -----------------------------------------------------------------
 # 
@@ -50,11 +50,16 @@ import edu.indiana.d2i.htrc.ingest.verify.HectorAccessor;
 import edu.indiana.d2i.htrc.ingest.verify.Verificationer;
 
 /**
+ * This class is an entry point of the Ingester service to launch a persistent and periodical ingest process.
  * @author Yiming Sun
  *
  */
 public class PersistentIngestService {
-    
+    /**
+     * This class monitors and persists the control file which is used to gracefully terminate the persistent service
+     * @author Yiming Sun
+     *
+     */
     static class ControlFileBean {
         private static Logger log = Logger.getLogger(ControlFileBean.class);
         private File controlFile;
@@ -64,6 +69,10 @@ public class PersistentIngestService {
         
         private boolean stop = false;
         
+        /**
+         * Constructor
+         * @param controlFilePath path to the control file
+         */
         ControlFileBean(String controlFilePath) {
             controlFile = new File(controlFilePath);
             if (!controlFile.exists()) {
@@ -73,6 +82,9 @@ public class PersistentIngestService {
             
         }
         
+        /**
+         * Method to write a control file
+         */
         void write() {
             FileWriter writer = null;
             try {
@@ -96,6 +108,9 @@ public class PersistentIngestService {
             
         }
         
+        /**
+         * Method to read a control file
+         */
         void read() {
             BufferedReader reader = null;
             try {
@@ -131,6 +146,10 @@ public class PersistentIngestService {
             }
         }
         
+        /**
+         * Method to check if the persistent service should be stopped
+         * @return <code>true</code> if the control file exists which indicates the persistent service should stop, or <code>false</code> if the control file does not exist
+         */
         boolean getStop() {
             if (controlFile.exists()) {
                 read();
@@ -141,12 +160,18 @@ public class PersistentIngestService {
     
     private static Logger log = Logger.getLogger(PersistentIngestService.class);
     
+    /**
+     * Method to check for stop signal
+     * @param controlFileBean a ControlFileBean object
+     * @return <code>true</code> if the persistent service should stop due to the existence of the control file, or <code>false</code> if there is no control file
+     */
     private static boolean checkStopSignal(ControlFileBean controlFileBean) {
         return controlFileBean.getStop();
     }
 
     /**
-     * @param args
+     * the main method
+     * @param args argument list passed in by the system
      */
     public static void main(String[] args) {
         PropertyReader propertyReader = PropertyReader.getInstance();
