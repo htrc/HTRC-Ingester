@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2012 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -10,7 +10,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,11 @@
 #
 # Project: HTRC-Ingester
 # File:  KeyLister.java
-# Description:  
+# Description:
+#   A utility to list all volumeIDs inside Cassandra.  Not the most efficient
+#   way since KeyIterator is slow.  An alternative is to list the ZIP or METS
+#   files directly from the pairtree, but it may not accurately reflect what's
+#   actually in Cassandra.
 #
 # -----------------------------------------------------------------
 # 
@@ -42,7 +46,12 @@ import edu.indiana.d2i.htrc.ingest.cassandra.HectorToolBridge;
  *
  */
 public class KeyLister {
-    
+
+    /**
+     * main method
+     * @param args argument list passed in by the system
+     * @throws Exception thrown if anything failed
+     */
     public static void main(String[] args) throws Exception {
         HectorToolBridge hectorToolBridge = new HectorToolBridge();
         KeyIterator<String> keyIterator = hectorToolBridge.getKeyIterator();

@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  PathLevelFilter.java
-# Description:  
+# Description: This class filters out any paths listed by the linux tree command that is shallower than a specified depth 
 #
 # -----------------------------------------------------------------
 # 
@@ -37,6 +37,7 @@ import java.io.FileWriter;
 import java.util.StringTokenizer;
 
 /**
+ * This class filters out any paths listed by the linux tree command that is shallower than a specified depth 
  * @author Yiming Sun
  *
  */
@@ -47,7 +48,13 @@ public class PathDepthFilter {
     private final String outputFilename;
     
     
-    
+    /**
+     * Constructor
+     * @param inputFilename name of the input file containing paths to be filtered
+     * @param outputFilename name of the output file to which filtered paths are written
+     * @param level the threshold depth
+     * @param delimiter path delimiter
+     */
     public PathDepthFilter(String inputFilename, String outputFilename, int level, String delimiter) {
         this.level = level;
         this.delimiter = delimiter;
@@ -55,6 +62,10 @@ public class PathDepthFilter {
         this.outputFilename = outputFilename;
     }
     
+    /**
+     * Method to filter the paths
+     * @throws Exception thrown if anything failed
+     */
     public void filter() throws Exception {
         BufferedReader reader = new BufferedReader(new FileReader(inputFilename));
         FileWriter writer = new FileWriter(outputFilename);
@@ -80,11 +91,15 @@ public class PathDepthFilter {
         
     }
 
+    /**
+     * Method to print the usage
+     */
     public static void printUsage() {
         System.out.println("PathLevelFilter <inputFilename> <outputFilename> <level> <delimiter>");
     }
     /**
-     * @param args
+     * main method
+     * @param args arguments passed in by the system
      */
     public static void main(String[] args) throws Exception {
         if (args.length < 4) {

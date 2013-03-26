@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -10,7 +10,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,8 +18,9 @@
 #
 # Project: HTRC-Ingester
 # File:  PairtreeTrimmer.java
-# Description:  
-#
+# Description: This class is a tool to trim the Pairtree when the number of Ingester instance has changed or the
+#    current instance's hash key has changed
+
 # -----------------------------------------------------------------
 # 
 */
@@ -49,67 +50,129 @@ import edu.indiana.d2i.htrc.ingest.PropertyReader;
 import edu.indiana.d2i.htrc.ingest.Util;
 
 /**
+ * This class is a tool to trim the Pairtree when the number of Ingester instance has changed or the
+ * current instance's hash key has changed
  * @author Yiming Sun
  *
  */
 public class PairtreeTrimmer {
     
+    /**
+     * Possible action: keep the subtree or delete the subtree
+     * @author Yiming Sun
+     *
+     */
     static enum ActionEnum {
         KEEP,
         DELETE;
     }
     
+    /**
+     * This class represents a Pairtree node and the action to be done on the node
+     * @author Yiming Sun
+     *
+     */
     static class ActionableNode {
         private String name;
         private ActionEnum action;
         
+        /**
+         * Constructor
+         * @param name name of the node
+         */
         public ActionableNode(String name) {
             this.name = name;
             this.action = ActionEnum.KEEP;
         }
         
+        /**
+         * Method to set the action to be done to the node
+         * @param action the action to be done to the node
+         */
         public void setAction(ActionEnum action) {
             this.action = action;
         }
         
+        /**
+         * Method to get the name of the node
+         * @return the name of the node
+         */
         public String getName() {
             return name;
         }
-        
+        /**
+         * Method to get the action to be done to the node
+         * @return the action to be done to the node
+         */
         public ActionEnum getAction() {
             return action;
         }
     }
     
+    /**
+     * This class is a generic tree node structure
+     * @author Yiming Sun
+     *
+     * @param <T> parameter type of the tree nodes
+     */
     static class Tree<T> {
         private T data;
         private Map<String, Tree<T>> children;
         
+        /**
+         * Constructor
+         * @param data data to be stored in the current node
+         */
         public Tree (T data) {
             this.data = data;
             this.children = new HashMap<String, Tree<T>>();
         }
         
+        /**
+         * Method to get the data stored in the current node
+         * @return the data stored in the current node
+         */
         public T getData() {
             return data;
         }
         
+        /**
+         * Method to get a child of this node by its ID
+         * @param id ID of a child node
+         * @return the child node identified by the ID, or <code>null</code> if no child by that ID
+         */
         public Tree<T> getChildByID(String id) {
             return children.get(id);
         }
         
+        /**
+         * Method to add a child node to the current node
+         * @param id ID to identifiy the child
+         * @param data data to be stored in the child
+         */
         public void addChild(String id, Tree<T> data) {
             children.put(id, data);
         }
         
+        /**
+         * Method to get a List of children Tree nodes
+         * @return a Iterator of Tree objects
+         */
         public Iterator<Tree<T>> getAllChildren() {
             return children.values().iterator();
         }
         
+        /**
+         * Method to remove the child identified by the ID
+         * @param id ID of the child to be removed
+         */
         public void removeChild(String id) {
             children.remove(id);
         }
-        
+        /**
+         * Method to check if the current node is a leaf node
+         * @return <code>true</code> if the current node has no children (is a leaf node), <code>false</code> otherwise
+         */
         public boolean isLeaf() {
             return children.isEmpty();
         }
@@ -123,18 +186,23 @@ public class PairtreeTrimmer {
     private String destRoot = null;
     
     private String sourceCleanseTarget = null;
-//    private String sourceCleanseReplacement = null;
-    
     
     private List<String> extraFilePaths = null;
     
     private Tree<String> keepTree = null;
     private Tree<ActionableNode> deleteTree = null;
-    
+
+    /**
+     * Constructor
+     */
     public PairtreeTrimmer() {
         readProperties();
     }
     
+    /**
+     * Method to trim the Pairtree
+     * @throws Exception thrown if anything failed
+     */
     public void trim() throws Exception {
         buildKeepTree();
         buildDeleteTree();
@@ -142,7 +210,9 @@ public class PairtreeTrimmer {
         
     }
 
-    
+    /**
+     * Method to read properties from properties file
+     */
     private void readProperties() {
         PropertyReader propertyReader = PropertyReader.getInstance();
         
@@ -157,20 +227,12 @@ public class PairtreeTrimmer {
         hashSpace = BigInteger.valueOf(hashSpaceInt);
         
         sourceCleanseTarget = propertyReader.getProperty(Constants.PK_SOURCE_CLEANSE_TARGET);
-//        sourceCleanseReplacement = propertyReader.getProperty(Constants.PK_SOURCE_CLEANSE_REPLACEMENT);
         
         if (sourceCleanseTarget == null) {
             sourceCleanseTarget = "";
         } else {
             sourceCleanseTarget = sourceCleanseTarget.trim();
         }
-        
-//        if (sourceCleanseReplacement == null) {
-//            sourceCleanseReplacement = "";
-//        } else {
-//            sourceCleanseReplacement = sourceCleanseReplacement.trim();
-//        }
-
         
         destRoot = Util.addTrailingSlash(propertyReader.getProperty(Constants.PK_RSYNC_DEST_ROOT));
         
@@ -189,12 +251,13 @@ public class PairtreeTrimmer {
         
         
     }
-    
+
+    /**
+     * Method to build a Tree representing branches to be kept
+     * @throws FileNotFoundException thrown if the special rsync points file does not exist
+     * @throws IOException thrown if the reading of the rsync points file failed
+     */
     private void buildKeepTree() throws FileNotFoundException, IOException {
-//        int index = 0;
-//        if (sourceCleanseReplacement != null) {
-//            index = sourceCleanseReplacement.length();
-//        }
         keepTree = new Tree<String>("keep");
 
         addPathToTree(keepTree, rsyncPointsPath);
@@ -211,7 +274,6 @@ public class PairtreeTrimmer {
                 int hash = Util.hashMD5Checksum(line, hashSpace);
                 if (hash == myHashKey) {
                     String cleanedSource = Util.addTrailingSlash(Util.cleanseSource(line, sourceCleanseTarget, null));
-//                    sourcePaths.add(cleanedSource);
                     addPathToTree(keepTree, cleanedSource);
                 }
             }
@@ -223,7 +285,11 @@ public class PairtreeTrimmer {
     }
     
    
-    
+    /**
+     * Method to add a path to a Tree
+     * @param tree a Tree to which the path is to be added
+     * @param path the path to be added to the Tree
+     */
     private void addPathToTree(Tree<String> tree, String path) {
         StringTokenizer tokenizer = new StringTokenizer(path, "/");
         Tree<String> current = tree;
@@ -238,6 +304,9 @@ public class PairtreeTrimmer {
         }
     }
     
+    /**
+     * Method to build the Tree representing branches to be deleted. It wraps the more detailed method with the same name
+     */
     private void buildDeleteTree() {
         
         deleteTree = new Tree<ActionableNode>(new ActionableNode("delete"));
@@ -249,6 +318,12 @@ public class PairtreeTrimmer {
         
     }
     
+    /**
+     * Method to check the keep tree and the delete tree and determine if the current directory should be deleted
+     * @param currentKeepNode the current keep tree
+     * @param currentDeleteNode the current delete tree
+     * @param currentFile the current Pairtree node directory to work on
+     */
     private void buildDeleteTree(Tree<String> currentKeepNode, Tree<ActionableNode> currentDeleteNode, File currentFile) {
         File[] files = currentFile.listFiles();
         
@@ -281,11 +356,19 @@ public class PairtreeTrimmer {
         
     }
     
+    /**
+     * This is a high level method to carry out the trim operation
+     */
     private void trimPairtree() {
         String pathSoFar = destRoot;
         trimPairtree(pathSoFar, deleteTree);
     }
     
+    /**
+     * This method checks the current path in the Pairtree and the current node to determine if the current node should be trimmed or kept
+     * @param pathSoFar the current path
+     * @param currentNode the current node in the delete tree
+     */
     private void trimPairtree(String pathSoFar, Tree<ActionableNode> currentNode) {
         Iterator<Tree<ActionableNode>> allChildren = currentNode.getAllChildren();
 
@@ -316,7 +399,13 @@ public class PairtreeTrimmer {
         }
     }
     
-    
+    /**
+     * Method to use linux command "rm -rf" to remove directory and all its subdirectories 
+     * @param pathSoFar the current path in the Pairtree
+     * @param data the data in the current node
+     * @throws IOException thrown if the linux command failed
+     * @throws InterruptedException thrown if the linux command failed
+     */
     private void rmrf(String pathSoFar, ActionableNode data) throws IOException, InterruptedException {
         String[] command = {"rm", "-rf", pathSoFar + data.getName()};
         Runtime runtime = Runtime.getRuntime();
@@ -325,6 +414,11 @@ public class PairtreeTrimmer {
         
     }
     
+    /**
+     * main method
+     * @param args argument list passed in by the system
+     * @throws Exception thrown if anything failed
+     */
     public static void main(String[] args) throws Exception {
         PairtreeTrimmer trimmer = new PairtreeTrimmer();
         trimmer.trim();

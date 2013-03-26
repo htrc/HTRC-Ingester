@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2012 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -10,7 +10,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -19,6 +19,9 @@
 # Project: HTRC-Ingester
 # File:  Reingester.java
 # Description:  
+#   This utility is for re-ingest volumes that were not properly ingested during the bulk operation.  The standard ingest process relies on the
+#   delta logs generated from rsync and is not easy to work with when a subset of volumes need to be reingested.  This tool takes a list of volume
+#   IDs and ingests them.
 #
 # -----------------------------------------------------------------
 # 
@@ -27,9 +30,6 @@
 
 
 /**
- * This utility is for re-ingest volumes that were not properly ingested during the bulk operation.  The standard ingest process relies on the
- * delta logs generated from rsync and is not easy to work with when a subset of volumes need to be reingested.  This tool takes a list of volume
- * IDs and ingests them.
  */
 package edu.indiana.d2i.htrc.ingest.tools;
 
@@ -41,10 +41,18 @@ import java.util.List;
 import edu.indiana.d2i.htrc.ingest.cassandra.HectorToolBridge;
 
 /**
+ * This utility is for re-ingest volumes that were not properly ingested during the bulk operation.  The standard ingest process relies on the
+ * delta logs generated from rsync and is not easy to work with when a subset of volumes need to be reingested.  This tool takes a list of volume
+ * IDs and ingests them.
  * @author Yiming Sun
  *
  */
 public class Reingester {
+    /**
+     * main method
+     * @param args arguments passed in by the system
+     * @throws Exception thrown if anything failed
+     */
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
             printUsage();
@@ -68,7 +76,9 @@ public class Reingester {
         reingester.shutdown();
     }
 
-    
+    /**
+     * Method to print the usage
+     */
     private static void printUsage() {
         System.out.println("Reingest <volume_list_file>");
     }

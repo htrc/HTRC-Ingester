@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  RevertDeltaLogs.java
-# Description:  
+# Description: This class is a tool to modify the state of the delta logs and delta log directories to another state
 #
 # -----------------------------------------------------------------
 # 
@@ -43,6 +43,7 @@ import edu.indiana.d2i.htrc.ingest.tools.RevertDeltaLogs.FromToFactory.FromDirSe
 import edu.indiana.d2i.htrc.ingest.tools.RevertDeltaLogs.FromToFactory.ToDirRenamer;
 
 /**
+ * This class is a tool to modify the state of the delta logs and delta log directories to another state
  * @author Yiming Sun
  *
  */
@@ -53,10 +54,18 @@ public class RevertDeltaLogs {
     private static final String VERIFIED = "VERIFIED";
     private static final String RAW = "RAW";
     
-    
+    /**
+     * This class implements FileFilter interface and uses regex to pick up files and/or directories matching the pattern
+     * @author Yiming Sun
+     *
+     */
     static class RegexFileFilter implements FileFilter {
         private final String[] regexes;
         
+        /**
+         * Constructor
+         * @param regexes an array of regexes to match
+         */
         RegexFileFilter(String[] regexes) {
             this.regexes = regexes.clone();
         }
@@ -76,9 +85,18 @@ public class RevertDeltaLogs {
         }
     }
     
+    /**
+     * This implements FileFilter interface and uses the String contains() method to pick p files and/or directories containing the specified pattern
+     * @author Yiming Sun
+     *
+     */
     static class ContainsFileFilter implements FileFilter {
         private final String[] patterns;
         
+        /**
+         * Constructor
+         * @param patterns an array of patterns to check for containment
+         */
         ContainsFileFilter(String[] patterns) {
             this.patterns = patterns;
         }
@@ -99,10 +117,20 @@ public class RevertDeltaLogs {
         
     }
     
+    /**
+     * This class implements FileFilter interface to use regexes and literal string patterns to match and check for containment when picking up files and/or directories
+     * @author Yiming Sun
+     *
+     */
     static class RegexContainsFileFilter implements FileFilter {
         private final RegexFileFilter regexFileFilter;
         private final ContainsFileFilter containsFileFilter;
         
+        /**
+         * Constructor
+         * @param regexes an array of regexes to match
+         * @param patterns an array of patterns to check for containment
+         */
         RegexContainsFileFilter(String[] regexes, String[] patterns) {
             this.regexFileFilter = new RegexFileFilter(regexes);
             this.containsFileFilter = new ContainsFileFilter(patterns);
@@ -121,17 +149,62 @@ public class RevertDeltaLogs {
     
     
     
-    
+    /**
+     * This class is a factory for generating the correct FileFilter based on the arguments 
+     * @author Yiming Sun
+     *
+     */
     static class FromToFactory {
+        /**
+         * interface definition for FromDirSelector
+         * @author Yiming Sun
+         *
+         */
         static interface FromDirSelector {
+            /**
+             * Method to get the FileFilter for the delta log directory
+             * @return a FileFilter instance for the delta log directory
+             */
             public FileFilter getDirFileFilter();
+            /**
+             * Method to get the FileFilter for the delta log file
+             * @return a FileFilter instance for the delta log file
+             */
             public FileFilter getFileFileFilter();
+            /**
+             * Method to get the raw filename of a delta log file
+             * @param file a File representing a delta log file
+             * @return the raw filename of a delta log file
+             */
             public String getRawFilename(File file);
+            /**
+             * Method to get the raw directory name of a delta log directory
+             * @param dir a File representing a delta log directory
+             * @return the raw directory name of a delta log directory
+             */
             public String getRawDirname(File dir);
         }
 
+        /**
+         * interface definition for ToDirRenamer
+         * @author Yiming Sun
+         *
+         */
         static interface ToDirRenamer {
+            /**
+             * Method to get the renamed File of a delta log file
+             * @param file a File representing a delta log file
+             * @param rawFilename the raw filename of the delta log file
+             * @return a File with a new name representing the delta log file
+             */
             public File getRenamedFile(File file, String rawFilename);
+            
+            /**
+             * Method to get the renamed File of a delta log directory
+             * @param file a File representing a delta log directory
+             * @param rawDirname the raw filename of the delta log directory
+             * @return a File with a new name representing the delta log directory
+             */
             public File getRenamedDir(File file, String rawDirname);
         }
         
@@ -154,6 +227,11 @@ public class RevertDeltaLogs {
         private static final Pattern RAW_DIRNAME_PATTERN = Pattern.compile(RAW_DIRNAME_REGEX);
 
         
+        /**
+         * This abstract class is a basic implementation of the FromDirSelector
+         * @author Yiming Sun
+         *
+         */
         private static abstract class AbstractFromDirSelector implements FromDirSelector {
             protected FileFilter dirFileFilter;
             protected FileFilter fileFileFilter;
@@ -201,6 +279,10 @@ public class RevertDeltaLogs {
                 return rawFilename;
             }
             
+            /**
+             * 
+             * @see edu.indiana.d2i.htrc.ingest.tools.RevertDeltaLogs.FromToFactory.FromDirSelector#getRawDirname(java.io.File)
+             */
             @Override
             public String getRawDirname(File file) {
                 String name = file.getName();
@@ -226,15 +308,26 @@ public class RevertDeltaLogs {
             
         }
         
+        /**
+         * This class extends the AbstractFromDirSelector for selecting delta log directories that are verified and delta log files that are extracted
+         * @author Yiming Sun
+         *
+         */
         private static class VerifiedFromDirSelector extends AbstractFromDirSelector {
             
+            /**
+             * Constructor
+             */
             VerifiedFromDirSelector() {
                 String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX};
                 this.dirFileFilter = new RegexFileFilter(dirRegexes);
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
-            
+            /**
+             * Constructor taking an array of patterns
+             * @param patterns an array of patterns for containment check
+             */
             VerifiedFromDirSelector(String[] patterns) {
                 String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX};
@@ -244,7 +337,15 @@ public class RevertDeltaLogs {
             
         }
         
+        /**
+         * This class extends the AbstractFromDirSelector for selecting delta log directories that are verified and delta log files that are either extracted or parsed
+         * @author Yiming Sun
+         *
+         */
         private static class TwoStepVerifiedFromDirSelector extends AbstractFromDirSelector {
+            /**
+             * Constructor
+             */
             TwoStepVerifiedFromDirSelector() {
                 String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX, PARSED_T_FILENAME_REGEX};
@@ -252,6 +353,10 @@ public class RevertDeltaLogs {
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
             
+            /**
+             * Constructor taking an array of patterns
+             * @param patterns an array of patterns for containment check
+             */
             TwoStepVerifiedFromDirSelector(String[] patterns) {
                 String[] dirRegexes = new String[] {VERIFIED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {EXTRACTED_T_FILENAME_REGEX, PARSED_T_FILENAME_REGEX};
@@ -260,8 +365,16 @@ public class RevertDeltaLogs {
             }
         }
     
+        /**
+         * This class extends the AbstractFromDirSelector for selecting delta log directories that are processed and delta log files that are parsed
+         * @author Yiming Sun
+         *
+         */
         private static class ProcessedFromDirSelector extends AbstractFromDirSelector {
             
+            /**
+             * Constructor
+             */
             ProcessedFromDirSelector() {
                 String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
@@ -270,6 +383,10 @@ public class RevertDeltaLogs {
 
             }
             
+            /**
+             * Constructor taking an array of patterns
+             * @param patterns an array of patterns for containment check
+             */
             ProcessedFromDirSelector(String[] patterns) {
                 String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX};
@@ -279,14 +396,25 @@ public class RevertDeltaLogs {
 
         }
         
+        /**
+         * This class extends the AbstractFromDirSelector for delta log directories that are processed or verified and delta log files that are parsed or extracted
+         * @author Yiming Sun
+         *
+         */
         private static class VerifiedOrProcessedFromDirSelector extends AbstractFromDirSelector {
+            /**
+             * Constructor
+             */
             VerifiedOrProcessedFromDirSelector() {
                 String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX, VERIFIED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX, EXTRACTED_T_FILENAME_REGEX};
                 this.dirFileFilter = new RegexFileFilter(dirRegexes);
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
-            
+            /**
+             * Constructor taking an array of patterns
+             * @param patterns an array of patterns for containment check
+             */
             VerifiedOrProcessedFromDirSelector(String[] patterns) {
                 String[] dirRegexes = new String[] {PROCESSED_DIRNAME_REGEX, VERIFIED_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {PARSED_T_FILENAME_REGEX, EXTRACTED_T_FILENAME_REGEX};
@@ -296,14 +424,25 @@ public class RevertDeltaLogs {
             }
         }
     
+        /**
+         * This class extends AbstractFromDirSelector for delta log directories that are raw and delta log files that are raw
+         * @author Yiming Sun
+         *
+         */
         private static class RawFromDirSelector extends AbstractFromDirSelector {
+            /**
+             * Constructor
+             */
             RawFromDirSelector() {
                 String[] dirRegexes = new String[] {RAW_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {RAW_T_FILENAME_REGEX};
                 this.dirFileFilter = new RegexFileFilter(dirRegexes);
                 this.fileFileFilter = new RegexFileFilter(fileRegexes);
             }
-            
+            /**
+             * Constructor taking an array of patterns
+             * @param patterns an array of patterns for containment check
+             */
             RawFromDirSelector(String[] patterns) {
                 String[] dirRegexes = new String[] {RAW_DIRNAME_REGEX};
                 String[] fileRegexes = new String[] {RAW_T_FILENAME_REGEX};
@@ -312,6 +451,12 @@ public class RevertDeltaLogs {
             }
             
         }
+        
+        /**
+         * This class implements the ToDirRenamer for renaming delta log directory to processed and renaming delta log files to parsed
+         * @author Yiming Sun
+         *
+         */
         private static class ProcessedToDirRenamer implements ToDirRenamer {
 
             private static final String PARSED_PREFIX = "_PARSED_";
@@ -351,6 +496,11 @@ public class RevertDeltaLogs {
             
         }
         
+        /**
+         * This class implements ToDirRenamer for renaming delta log directories and delta log files to their raw state 
+         * @author Yiming Sun
+         *
+         */
         private static class RawToDirRenamer implements ToDirRenamer {
 
             /**
@@ -387,6 +537,13 @@ public class RevertDeltaLogs {
             
         }
     
+        /**
+         * Method to select the correct FromDirSelector based on the input
+         * @param from the state of the delta logs to revert from
+         * @param to the state of the delta logs to revert to
+         * @param patterns an array of patterns to check for containment
+         * @return the correct FromDirSelector
+         */
         static FromDirSelector getFromDirSelector(String from, String to, String[] patterns) {
             FromDirSelector fromDirSelector = null;
             if (patterns != null && patterns.length > 0) {
@@ -422,6 +579,12 @@ public class RevertDeltaLogs {
             return fromDirSelector;
         }
     
+        /**
+         * Method to select the correct ToDirRenamer based on the input
+         * @param to the state of the delta logs to revert to
+         * @param from the state of the delta logs to revert from
+         * @return the correct ToDirRenamer
+         */
         static ToDirRenamer  getToDirRenamer(String to, String from) {
             ToDirRenamer toDirRenamer = null;
             if (PROCESSED.equals(to)) {
@@ -434,7 +597,10 @@ public class RevertDeltaLogs {
         
     }
     
-    
+    /**
+     * main method
+     * @param args arguments passed in by the system
+     */
     public static void main (String[] args) {
 
         final HashSet<String> validFromSet = new HashSet<String>();
@@ -543,6 +709,9 @@ public class RevertDeltaLogs {
         }
     }
     
+    /**
+     * Method to print the usage
+     */
     private static void printUsage() {
         System.out.println("Usage: RevertDeltaLogs [<-f | --from> <VERIFIED | PROCESSED | ALL>]  [<-t | --to> <PROCESSED | RAW>]  [pattern [pattern ...]]");
         

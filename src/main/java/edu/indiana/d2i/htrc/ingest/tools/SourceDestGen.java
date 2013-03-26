@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -10,7 +10,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: rsync_test
 # File:  SourceDestGen.java
-# Description:  
+# Description: This class is a tool for generating rsync source and destination pairs  
 #
 # -----------------------------------------------------------------
 # 
@@ -32,6 +32,11 @@ import java.io.FileInputStream;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 
+/**
+ * This class is a tool for generating rsync source and destination pairs
+ * @author Yiming Sun
+ *
+ */
 public class SourceDestGen {
 	final String inputFilename;
 	final String outputFilename;
@@ -39,6 +44,14 @@ public class SourceDestGen {
 	final String destRoot;
 	final String sourceAlias;
 	
+	/**
+	 * Constructor
+	 * @param inputFilename an input file containing paths to be rsyncked, typically the output from the linux tree command
+	 * @param outputFilename the output file to which the source-destination pairs are written
+	 * @param sourceRoot source root directory
+	 * @param destRoot destination root directory
+	 * @param sourceAlias alias of the source
+	 */
 	public SourceDestGen(String inputFilename, String outputFilename, String sourceRoot, String destRoot, String sourceAlias) {
 		this.inputFilename = inputFilename;
 		this.outputFilename = outputFilename;
@@ -55,6 +68,10 @@ public class SourceDestGen {
 		}
 	}
 	
+	/**
+	 * Method to generate the pairs
+	 * @throws Exception thrown if anything failed
+	 */
 	public void generate() throws Exception {
 		BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFilename)));
 		FileWriter writer = new FileWriter(outputFilename);
@@ -92,6 +109,11 @@ public class SourceDestGen {
 		writer.close();
 	}
 	
+	/**
+	 * main method
+	 * @param args arguments passed in by the system
+	 * @throws Exception thrown if anything failed
+	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
 			printUsage();
@@ -107,6 +129,9 @@ public class SourceDestGen {
 		}
 	}
 	
+	/**
+	 * Method to print the usage
+	 */
 	static void printUsage() {
 		System.out.println("Usage: java SourceDestGen <inputFile> <outputFile> <sourceRoot> <destRoot> [sourceAlias]");
 	}

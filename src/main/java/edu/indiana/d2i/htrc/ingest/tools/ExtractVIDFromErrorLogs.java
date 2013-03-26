@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2012 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -10,7 +10,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  ExtractVIDFromErrorLogs.java
-# Description:  
+# Description: This class is a tool to extract volume IDs from error logs 
 #
 # -----------------------------------------------------------------
 # 
@@ -43,15 +43,15 @@ import java.util.Set;
 import java.util.StringTokenizer;
 
 /**
+ * This class is a tool to extract volume IDs from error logs
  * @author Yiming Sun
  * 
- * this tool extracts the volume IDs from error logs
- *
  */
 public class ExtractVIDFromErrorLogs {
 
     /**
-     * @param args
+     * the main method
+     * @param args argument list passed in by the system
      */
     public static void main(String[] args) throws Exception {
         if (args.length < 2) {
@@ -66,7 +66,6 @@ public class ExtractVIDFromErrorLogs {
         HashMap<String, Set<String>> idMap = new HashMap<String, Set<String>>();
         
         BufferedReader reader = new BufferedReader(new FileReader(errorLogFile));
-//        FileWriter writer = new FileWriter(volumeListFile);
         
         String currentVolumeID = null;
         String line = null;
@@ -95,8 +94,7 @@ public class ExtractVIDFromErrorLogs {
                 }
             }
         } while (line != null);
-        
-//        writer.close();
+
         reader.close();
         
         FileWriter writer = new FileWriter(volumeListFile);
@@ -129,6 +127,9 @@ public class ExtractVIDFromErrorLogs {
 
     }
 
+    /**
+     * Method to print the usage of this tool
+     */
     private static void printUsage() {
         System.out.println("Usage: ExtractVIDFromErrorLogs <error log file>  <volume list file> [--with-pages]");
         System.out.println("Assumes volume IDs are preceeded with 'Volume: ' and page sequence numbers with 'Page: '");

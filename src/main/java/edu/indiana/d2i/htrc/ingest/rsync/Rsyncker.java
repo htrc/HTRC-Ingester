@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: rsync_test
 # File:  Rsyncker.java
-# Description:  
+# Description: This class performs rsync 
 #
 # -----------------------------------------------------------------
 # 
@@ -49,25 +49,46 @@ import edu.indiana.d2i.htrc.ingest.JobQueue;
 
 
 /**
+ * This class performs rsync
  * @author Yiming Sun
  *
  */
 public class Rsyncker implements Runnable {
     
+    /**
+     * This factory class captures output from a Java Runtime process, both the output and error streams
+     * @author Yiming Sun
+     *
+     */
     protected static class OutputCatcherFactory {
     	
+        /**
+         * This class captures the output from an InputStream and writes to a Log4j logger
+         * @author Yiming Sun
+         *
+         */
     	protected static class OutputLogger implements Runnable {
     		private static Logger log = Logger.getLogger(OutputLogger.class);
     		private final Logger oLog;
     		private final InputStream inputStream;
     		private final Priority priority;
     		
+    		/**
+    		 * Constructor
+    		 * @param oLog a Log4j Logger
+    		 * @param inputStream an InputStream to read from
+    		 * @param priority the log level to write the log message
+    		 */
     		OutputLogger(Logger oLog, InputStream inputStream, Priority priority) {
     			this.oLog = oLog;
     			this.inputStream = inputStream;
     			this.priority = priority;
     		}
     		
+    		/**
+    		 * 
+    		 * @see java.lang.Runnable#run()
+    		 */
     		public void run() {
     			String line = null;
     			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
@@ -87,17 +108,31 @@ public class Rsyncker implements Runnable {
     		
     	}
     		
+    	/**
+    	 * This class captures the output from an InputStream and writes to the provided Writer object
+    	 * @author Yiming Sun
+    	 *
+    	 */
     	protected static class OutputWriter implements Runnable {
     		private static final String EOL = System.getProperty("line.separator");
     		private static Logger log = Logger.getLogger(OutputWriter.class);
     		private final InputStream inputStream;
     		private final Writer writer;
     		
+    		/**
+    		 * Constructor
+    		 * @param writer a Writer object to which to write the captured output
+    		 * @param inputStream an InputStream from which to read information
+    		 */
     		OutputWriter(Writer writer, InputStream inputStream) {
     			this.writer = writer;
     			this.inputStream = inputStream;
     		}
     		
+    		/**
+    		 * 
+    		 * @see java.lang.Runnable#run()
+    		 */
     		public void run() {
 
     			String line = null;
@@ -117,12 +152,26 @@ public class Rsyncker implements Runnable {
     		}
     		
     	}
+    	
+    	/**
+    	 * Method to get a new Thread that runs the OutputLogger 
+    	 * @param log a Log4j logger
+    	 * @param inputStream an InputStream to read
+    	 * @param priority log level
+    	 * @return a Thread with an OutputLogger Runnable object
+    	 */
     	static Thread getOutputLogger(Logger log, InputStream inputStream, Priority priority) {
     		OutputLogger outputLogger = new OutputLogger(log, inputStream, priority);
     		Thread thread = new Thread(outputLogger);
     		return thread;
     	}
     	
+    	/**
+    	 * Method to get a new Thread that runs the OutputWriter
+    	 * @param writer a Writer object
+    	 * @param inputStream an InputStream to read
+    	 * @return a Thread with an OutputWriter Runnable object
+    	 */
     	static Thread getOutputWriter(Writer writer, InputStream inputStream) {
     		OutputWriter outputWriter = new OutputWriter(writer, inputStream);
     		Thread thread = new Thread(outputWriter);
@@ -141,7 +190,11 @@ public class Rsyncker implements Runnable {
     
     protected JobQueue<RsyncJobDescriptor> jobQueue;
 
-    
+    /**
+     * Constructor
+     * @param id an int to differentiate and identify instances
+     * @param jobQueue a JobQueue of RsyncJobDescriptor objects
+     */
     protected Rsyncker(String id, JobQueue<RsyncJobDescriptor> jobQueue) {
         this.id = id;
         this.jobQueue = jobQueue;
@@ -149,6 +202,11 @@ public class Rsyncker implements Runnable {
         writeLog = false;
     }
     
+    /**
+     * Method to build the rsync commandline command
+     * @param job a RsyncJobDescriptor object
+     * @return a String array containing the command with arguments
+     */
     protected String[] buildCommandArray(RsyncJobDescriptor job) {
         List<String> strings = new ArrayList<String>();
         strings.add("rsync");
@@ -197,6 +255,11 @@ public class Rsyncker implements Runnable {
         return commandArray;
     }
     
+    /**
+     * Method to prepare a delta log file
+     * @param iteration an int to identify the current iteration
+     * @return a Writer object to which the delta log conten will be written
+     */
     protected Writer prepareDeltaLogFile(int iteration) {
     	Writer writer = null;
 	    String dlogFileName = id + "-" + iteration + ".txt";

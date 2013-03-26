@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  Ingester.java
-# Description:  
+# Description: This class prepares and initiates the rsync process of corpus data  
 #
 # -----------------------------------------------------------------
 # 
@@ -53,6 +53,7 @@ import edu.indiana.d2i.htrc.ingest.PropertyReader;
 import edu.indiana.d2i.htrc.ingest.Util;
 
 /**
+ * This class prepares and initiates the rsync process of corpus data
  * @author Yiming Sun
  *
  */
@@ -88,12 +89,18 @@ public class Ingester {
    
     private JobQueue<RsyncJobDescriptor> jobQueue;
     
+    /**
+     * Constructor
+     */
     public Ingester() {
         jobQueue = new JobQueue<RsyncJobDescriptor>("RsyncJobQueue");
         
         readConfiguration();
     }
     
+    /**
+     * Method to read configuration information fro the properties file
+     */
     private void readConfiguration() {
         sourcePaths = new ArrayList<String>();
         destPaths = new ArrayList<String>();
@@ -151,22 +158,12 @@ public class Ingester {
         myHashKey = Integer.parseInt(reader.getProperty(Constants.PK_INGEST_MY_HASH_KEY));
         myHashKey = (myHashKey >= 0 && myHashKey < hashSpaceInt) ? myHashKey : 0;
         
-        
-
-//        sourceCount = Integer.parseInt(reader.getProperty(Constants.PK_RSYNC_SOURCE_COUNT));
-
-//        for (int i = 0; i < sourceCount; i++) {
-//            String sourceRoot = reader.getProperty(Constants.PKN_RSYNC_SOURCE_ROOT + (i + 1));
-//            sourceRoot = Util.addTrailingSlash(sourceRoot);
-//            sourceRoots.add(sourceRoot);
-//            
-//            String destRoot = reader.getProperty(Constants.PKN_RSYNC_DEST_ROOT + (i + 1));
-//            destRoot = Util.addTrailingSlash(destRoot);
-//            destRoots.add(destRoot);
-//            
-//        }
     }
     
+    /**
+     * Method to prepare the destination directory
+     * @throws IngestException thrown if the destination directory cannot be created
+     */
     private void prepareDestination() throws IngestException {
         for (String destRoot : destPaths) {
             File file = new File(destRoot);
@@ -180,6 +177,10 @@ public class Ingester {
         }
     }
 
+    /**
+     * Method to prepare the delta log directory
+     * @throws IngestException thrown if the delta log directory cannot be created
+     */
     private void prepareDeltaLogDir() throws IngestException {
         DateFormat dateFormat = new SimpleDateFormat(DELTA_LOG_FILENAME_PATTERN);
         Calendar calendar = Calendar.getInstance();
@@ -194,6 +195,9 @@ public class Ingester {
         }
     }
     
+    /**
+     * Method to added the rsync of extra files to the queue
+     */
     private void queueExtraFileJobs() {
         log.info("queuing extra file jobs");
         for (String extraFilePath : extraFilePaths) {
@@ -202,6 +206,9 @@ public class Ingester {
         }
     }
 
+    /**
+     * Method to queue jobs to the job queue
+     */
     private void queueJobs() {
         
         queueExtraFileJobs();
@@ -224,6 +231,10 @@ public class Ingester {
         jobQueue.markDone();
     }
     
+    /**
+     * Method to launch the rsync threads
+     * @return a List of Thread objects
+     */
     private List<Thread> launchRsyncThreads() {
         List<Thread> threadList = new ArrayList<Thread>();
         for (int i = 0; i < threadCount; i++) {
@@ -237,6 +248,10 @@ public class Ingester {
         
     }
     
+    /**
+     * Method to wait and join the rsync Thread objects
+     * @param threadList a List of Thread objects
+     */
     private void joinRsyncThreads(List<Thread> threadList) {
         for (int i = 0; i < threadCount; i++) {
             try {
@@ -252,6 +267,10 @@ public class Ingester {
         
     }
     
+    /**
+     * Method to retrieve a List of Pairtree structures on the remote machine
+     * @throws InterruptedException thrown if the rsync thread was interrupted
+     */
     private void retrieveTreeList() throws InterruptedException {
         log.info("Retrieving remote tree list");
         RsyncJobDescriptor rsyncTreeJob = new RsyncJobDescriptor(treeSourcePath, destRoot, "", CopyrightEnum.PUBLIC_DOMAIN, username, password, sourceHost, separator, deltaLogDir, dryRun);
@@ -264,7 +283,11 @@ public class Ingester {
         jobQueue.reset();
     }
     
-    
+    /**
+     * Method to read the List of Pairtree structures
+     * @throws FileNotFoundException thrown if the file containing the List of Pairtree structures is not found
+     * @throws IOException thrown if reading of the file failed
+     */
     private void readTreeList() throws FileNotFoundException, IOException  {
         log.info("Reading tree list");
         int index = 0;
@@ -274,7 +297,6 @@ public class Ingester {
         String treePath = destRoot + treeSourcePath.substring(index);
             
         if (log.isTraceEnabled()) log.trace("local treePath is: " + treePath);
-//        String treePath = destRoot + treeSourcePath;
         BufferedReader bufferedReader = new BufferedReader(new FileReader(treePath));
         String line = null;
         sourceCount = 0;
@@ -300,7 +322,10 @@ public class Ingester {
         log.info("Branches read: " + sourceCount);
         
     }
-    
+
+    /**
+     * Method to run jobs
+     */
     private void runJobs() {
         log.info("** Thread count: " + threadCount);
         log.info("** Source count: " + sourceCount);
@@ -320,8 +345,10 @@ public class Ingester {
 
     }
     
-
-
+    /**
+     * Method to initiate the ingest process 
+     * @throws IngestException thrown if something failed
+     */
     public void ingest() throws IngestException {
         
         prepareDeltaLogDir();
