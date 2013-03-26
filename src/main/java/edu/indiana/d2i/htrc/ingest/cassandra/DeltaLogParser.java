@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  DeltaParser.java
-# Description:  
+# Description: This class parses delta logs produced by rsync with verbose mode enabled
 #
 # -----------------------------------------------------------------
 # 
@@ -47,12 +47,17 @@ import edu.indiana.d2i.htrc.ingest.Constants.CopyrightEnum;
 import gov.loc.repository.pairtree.Pairtree;
 
 /**
+ * This class parses delta logs produced by rsync with verbose mode enabled
  * @author Yiming Sun
  *
  */
 public class DeltaLogParser {
     
-    
+    /**
+     * This class holds information on a volume to be updated
+     * @author Yiming Sun
+     *
+     */
     static class VolumeUpdateInfo {
         
         
@@ -61,9 +66,13 @@ public class DeltaLogParser {
         protected String volumePath;
 
         protected CopyrightEnum copyright;
-//        protected String volumeMETSPath;
-        
 
+        /**
+         * Constructor
+         * @param volumeID volumeID
+         * @param cleanedPartialVolumeID volumeID with prefix removed and the rest cleaned by Pairtree
+         * @param volumePath path to the volume in Pairtree
+         */
         VolumeUpdateInfo(String volumeID, String cleanedPartialVolumeID, String volumePath) {
             this.volumeID = volumeID;
             this.cleanedPartialVolumeID = cleanedPartialVolumeID;
@@ -72,33 +81,56 @@ public class DeltaLogParser {
             copyright = CopyrightEnum.PUBLIC_DOMAIN;
   
         }
+        /**
+         * Method to return the volumeID
+         * @return the original volumeID
+         */
         String getVolumeID() {
             return volumeID;
         }
+        /**
+         * Method to return the Pairtree path to the volume
+         * @return the Pairtree path to the volume
+         */
         String getVolumePath() {
             return volumePath;
         }
+        /**
+         * Method to set the Pairtree path to the volume
+         * @param volumePath the Pairtree path to the volume
+         */
         void setVolumePath(String volumePath) {
             this.volumePath = volumePath;
         }
+        /**
+         * Method to return the Pairtree cleaned volumeID with the prefix removed
+         * @return the Pairtree cleaned volumeID with the prefix removed
+         */
         String getCleanedPartialVoluemID() {
             return cleanedPartialVolumeID;
         }
 
+        /**
+         * Method to set the copyright of the volume
+         * @param copyright the copyright of the volume
+         */
         void setCopyright(CopyrightEnum copyright) {
             this.copyright = copyright;
         }
+        /**
+         * Method to get the copyright of the volume
+         * @return the copyright of the volume
+         */
         CopyrightEnum getCopyright() {
             return copyright;
         }
-//        void setMETSPath(String volumeMETSPath) {
-//            this.volumeMETSPath = volumeMETSPath;
-//        }
-//        String getMETSPath() {
-//            return volumeMETSPath;
-//        }
-
     }
+    
+    /**
+     * This class holds information on a volume to be deleted
+     * @author Yiming Sun
+     *
+     */
     static class VolumeDeletionInfo {
         
         protected String volumeID;
@@ -108,6 +140,11 @@ public class DeltaLogParser {
 
         protected CopyrightEnum copyright;
         
+        /**
+         * Constructor
+         * @param volumeID volumeID of the volume to be deleted
+         * @param copyright copyright of the volume
+         */
         VolumeDeletionInfo(String volumeID, CopyrightEnum copyright) {
             this.volumeID = volumeID;
             this.copyright = copyright;
@@ -117,27 +154,59 @@ public class DeltaLogParser {
 
         }
         
-
+        /**
+         * Method to get the volumeID
+         * @return the volumeID
+         */
         String getVolumeID() {
             return volumeID;
         }
+        
+        /**
+         * Method to set the flag to indicate if the actual volume is to be deleted
+         * @param isDeleteVolume flag to indicate if the actual volume is to be deleted
+         */
         void setIsDeleteVolume(boolean isDeleteVolume) {
             this.isDeleteVolume = isDeleteVolume;
 
         }
+        
+        /**
+         * Method to get the flag to indicate if the actual volume is to be deleted
+         * @return flag to indicate if the actual volume is to be deleted
+         */
         boolean getIsDeleteVolume() {
             return isDeleteVolume;
         }
 
+        /**
+         * Method to set the flag to indicate if the METS accompanying the volume is to be deleted
+         * @param isDeleteMETS flag to indicate if the METS accompanying the volume is to be deleted
+         */
         void setIsDeleteMETS(boolean isDeleteMETS) {
             this.isDeleteMETS = isDeleteMETS;
         }
+        
+        /**
+         * Method to get the flag to indicate if the METS accompanying the volume is to be deleted
+         * @return flag to indicate if the METS accompanying the volume is to be deleted
+         */
         boolean getIsDeleteMETS() {
             return isDeleteMETS;
         }
+        
+        /**
+         * Method to get the copyright of the volume
+         * @return copyright of the volume
+         */
         CopyrightEnum getCopyright() {
             return copyright;
         }
+        
+        /**
+         * Method to set the copyright of the volume
+         * @param copyright copyright of the volume
+         */
         void setCopyright(CopyrightEnum copyright) {
             this.copyright = copyright;
         }
@@ -159,9 +228,6 @@ public class DeltaLogParser {
     private static final String DELETING_PREFIX = "deleting ";
     private static final int DELETING_PREFIX_SIZE = DELETING_PREFIX.length();
     
-//    private static final String TXT_SUFFIX = ".txt";
-//    private static final int TXT_SUFFIX_LENGTH = TXT_SUFFIX.length();
-    
     private static final String METS_SUFFIX = ".mets.xml";
     private static final int METS_SUFFIX_LENGTH = METS_SUFFIX.length();
     
@@ -169,9 +235,6 @@ public class DeltaLogParser {
     private static final int ZIP_SUFFIX_LENGTH = ZIP_SUFFIX.length();
     
     private static final String PAIRTREE_ROOT_SEGMENT = "pairtree_root";
-    
-//    private static final String PAGE_TXT_FILE_PATTERN = "([^/]{2}/)+([^/]{1}/)?([^/]{3,}/)+\\d{8}\\.txt";
-    
     
     
     private String deltaLogPath;
@@ -186,13 +249,17 @@ public class DeltaLogParser {
     
     private Pairtree pairtree;
     
-    // this variable is used to tell the code if it has seen an actual rsync line (not the stuff like COPYRIGHT=, DEST_ROOT_PREFIX= added on my the ingest service) from the current dlog file yet.
+    // this variable is used to tell the code if it has seen an actual rsync line (not the stuff like COPYRIGHT=, DEST_ROOT_PREFIX= added on by the ingest service) from the current dlog file yet.
     // the code is supposed to look at the first actual rsync line and determine if the prefix information is in the path itself (by looking for pairtree_root and then grab the path segment
     // before it).  If so, this prefix information shall override the one got passed in; if not, use the prefix information that was passed in.
     // there will not be a case where a dlog file contains rsync lines from different prefixes because the prefix is just below the root path, so any subbranch from the pairtree assigned to
     // an rsync task can only belong to one prefix, and therefore it is sufficient to only examine the prefix for the very first line.
     private boolean seenALine;
     
+    /**
+     * Constructor
+     * @param deltaLogPath path to a delta log file
+     */
     protected DeltaLogParser(String deltaLogPath) {
         this.deltaLogPath = deltaLogPath;
         
@@ -204,6 +271,11 @@ public class DeltaLogParser {
         
     }
     
+    /**
+     * Method to parse the delta log file
+     * @throws FileNotFoundException thrown if the delta log file does not exist
+     * @throws IOException thrown if reading of the delta log file failed
+     */
     protected void parse() throws FileNotFoundException, IOException {
         BufferedReader reader = new BufferedReader(new FileReader(deltaLogPath));
 //        String destRoot = null;
@@ -257,6 +329,10 @@ public class DeltaLogParser {
         log.info("Finished parsing " + deltaLogPath);
     }
     
+    /**
+     * Method to parse out prefix from a line
+     * @param line a line containing the prefix
+     */
     private void parsePrefixFromLine(String line) {
         int index = line.indexOf(PAIRTREE_ROOT_SEGMENT);
         if (index > -1) {
@@ -273,6 +349,10 @@ public class DeltaLogParser {
         
     }
     
+    /**
+     * Method to parse a line about deleting a volume
+     * @param line a line about deleting a volume
+     */
     private void parseDeleteLine(String line) {
         // the line is deleting dd/yy/zz/.../yyzz...wwuu/????? where dd is the repeated last portion of destRoot
         int index = line.indexOf("/");
@@ -334,6 +414,12 @@ public class DeltaLogParser {
         
     }
     
+    /**
+     * Method to parse a line about a new/update volume
+     * @param line a line about a new/update volume
+     * @param suffix filename suffix to match
+     * @param suffixLength length of the filename suffix
+     */
     private void parseNewVolumeLine(String line, String suffix, int suffixLength) {
         // the line is escaped x+/yy/.../x+yy...wwuu/x+yy...wwuu.<suffix>
         int lastSlashIndex = line.lastIndexOf('/');
@@ -364,110 +450,12 @@ public class DeltaLogParser {
             if (log.isTraceEnabled()) log.trace("cleanedPartialVolumeID already encountered: " + cleanedPartialVolumeID);
         }
     }
-    
-//    private void parseNewZipLine(String line) {
-//        // the line is escaped x+/yy/.../xxyy...wwuu/x+yy...wwuu.zip
-//        int lastSlashIndex = line.lastIndexOf("/");
-//        String zipFilename = line.substring(lastSlashIndex + 1);
-//        
-//        if (log.isTraceEnabled()) log.trace("zipFilename: " + zipFilename);
-//        
-//        String escapedPartialVolumeID = zipFilename.substring(0, zipFilename.length() - ZIP_SUFFIX_LENGTH);
-//        // escapedPartialVolumeID = x+yy...wwuu
-//        if (log.isTraceEnabled()) log.trace("escapedPartialVolumeID: " + escapedPartialVolumeID);
-//        
-//        String partialVolumeID = pairtree.uncleanId(escapedPartialVolumeID);
-//        // partialVolumeID = x:yy...wwuu
-//        if (log.isTraceEnabled()) log.trace("partialVolumeID: " + partialVolumeID);
-//        
-//        String volumeID = prefix + partialVolumeID;
-//        // volumeID = <prefix>.x:yy...wwuu
-//        if (log.isTraceEnabled()) log.trace("volumeID: " + volumeID);
-//        
-//        String volumeZipPath = destRoot + line;
-//        if (log.isTraceEnabled()) log.trace("volumeZipPath: " + volumeZipPath);
-//
-//        VolumeUpdateInfo volumeUpdateInfo = volumeUpdateMap.get(volumeID);
-//        
-//        if (volumeUpdateInfo == null) {
-//            volumeUpdateInfo = new VolumeUpdateInfo(volumeID, volumeZipPath);
-//            volumeUpdateInfo.setCopyright(copyright);
-//            volumeUpdateMap.put(volumeID, volumeUpdateInfo);
-//        } else {
-//            volumeUpdateInfo.setVolumePath(volumeZipPath);
-//        }
-//    }
-    
-//    private void parseNewTxtLine(String line) {
-//        // the line is xx/yy/zz/.../xxyyzz...wwuu/00000001.txt
-//        int lastSlashIndex = line.lastIndexOf("/");
-//        String pageFilename = line.substring(lastSlashIndex + 1);
-//        // pageFilename = 00000001.txt
-//        if (log.isTraceEnabled()) log.trace("pageFilename: " + pageFilename);
-//                
-//        String partialVolumePath = line.substring(0, lastSlashIndex);
-//        // partialVolumePath = xx/yy/zz/.../xxyyzz...wwuu
-//        if (log.isTraceEnabled()) log.trace("partialVolumePath: " + partialVolumePath);
-//                
-//        lastSlashIndex = partialVolumePath.lastIndexOf("/");
-//        
-//        String volumeID = prefix + partialVolumePath.substring(lastSlashIndex + 1);
-//        // volumeID = inu.xxyyzz...wwuu
-//        if (log.isTraceEnabled()) log.trace("volumeID: " + volumeID);
-//        
-//        VolumeUpdateInfo volumeUpdateInfo = volumeUpdateMap.get(volumeID);
-//        if (volumeUpdateInfo == null) {
-//            String volumePath = destRoot + partialVolumePath + "/";
-//            volumeUpdateInfo = new VolumeUpdateInfo(volumeID, volumePath);
-//            volumeUpdateInfo.setCopyright(copyright);
-//            volumeUpdateMap.put(volumeID, volumeUpdateInfo);
-//        }
-//        volumeUpdateInfo.setVolumePath(destRoot + partialVolumePath + "/");
-//        PageUpdateInfo pageUpdateInfo = new PageUpdateInfo(pageFilename);
-//        
-//        volumeUpdateInfo.addPageUpdateInfo(pageUpdateInfo);
-//       
-//    }
-    
-    
-//    protected void parseNewMETSLine(String line) {
-//        // the line is yy/+z/zz/.../yy+zzz...wwuu/yy+zzz...wwuu.mets.xml
-//        
-//        int lastIndex = line.lastIndexOf("/");
-//        String metsFilename = line.substring(lastIndex + 1);
-//        // metsFilename = yy+zzz...wwuu.mets.xml
-//        if (log.isTraceEnabled()) log.trace("metsFilename: " + metsFilename);
-//        
-//        String cleanedPartialVolumeID = metsFilename.substring(0, metsFilename.length() - METS_SUFFIX_LENGTH);
-//        // cleanedPartialVolumeID = yy+zzz...wwuu
-//        if (log.isTraceEnabled()) log.trace("cleanedPartialVolumeID: " + cleanedPartialVolumeID);
-//        
-//        String uncleanedPartialVolumeID = pairtree.uncleanId(cleanedPartialVolumeID);
-//        // uncleanedPartialVolumeID = yy:zzz...wwuu
-//        if (log.isTraceEnabled()) log.trace("uncleanedPartialVolumeID: " + uncleanedPartialVolumeID);
-//        
-//        String volumeID = prefix + uncleanedPartialVolumeID;
-//        // volumeID = uc2.yy+zzz...wwuu
-//        if (log.isTraceEnabled()) log.trace("volumeID: " + volumeID);
-//        
-//        VolumeUpdateInfo volumeUpdateInfo = volumeUpdateMap.get(volumeID);
-//        if (volumeUpdateInfo == null) {
-//            String partialVolumePath = line.substring(0, lastIndex + 1);
-//            // partialVolumePath = yy/zz/.../yyzz...wwuu/
-//            if (log.isTraceEnabled()) log.trace("partialVolumePath: " + partialVolumePath);
-//            String volumePath = destRoot + partialVolumePath;
-//            if (log.isTraceEnabled()) log.trace("volumePath: " + volumePath);
-//            volumeUpdateInfo = new VolumeUpdateInfo(volumeID, volumePath);
-//            volumeUpdateInfo.setCopyright(copyright);
-//            volumeUpdateMap.put(volumeID, volumeUpdateInfo);
-//        }
-//        
-//        String metsPath = destRoot + line;
-//        if (log.isTraceEnabled()) log.trace("metsPath: " + metsPath);
-//        volumeUpdateInfo.setMETSPath(metsPath);
-//    }
-    
-    
+
+    /**
+     * Method to convert a HashMap object to an ordered List containing the values from the HashMap 
+     * @param hashMap a HashMap object
+     * @return an ordered List
+     */
     private <K> List<K> convertMapValuesToList(HashMap<String, K> hashMap) {
         List<K> list = null;
         
@@ -483,10 +471,18 @@ public class DeltaLogParser {
         return list;
     }
     
+    /**
+     * Method to get the List of VolumeUpdateInfo objects
+     * @return
+     */
     protected List<VolumeUpdateInfo> getVolumeUpdateList() {
         return convertMapValuesToList(volumeUpdateMap);
     }
     
+    /**
+     * Method to get the List of VolumeDeletionInfo objects
+     * @return
+     */
     protected List<VolumeDeletionInfo> getVolumeDeletionList() {
         return convertMapValuesToList(volumeDeletionMap);
     }

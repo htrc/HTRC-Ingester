@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  METSParser.java
-# Description:  
+# Description: This class parses a METS file and populates important metadata information for the volume 
 #
 # -----------------------------------------------------------------
 # 
@@ -55,11 +55,17 @@ import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogProcessor.VolumeRecord.Page
 
 
 /**
+ * This class parses a METS file and populates important metadata information for the volume
  * @author Yiming Sun
  *
  */
 public class METSParser {
     
+    /**
+     * internal states of the METS parser
+     * @author Yiming Sun
+     *
+     */
     enum ParsePhaseEnum {
         OCR_FILEGRP,
         FILE,
@@ -70,31 +76,63 @@ public class METSParser {
         OCR_FPTR;
     }
     
+    /**
+     * This class contains information about a page in METS
+     * @author Yiming Sun
+     *
+     */
     static class PageDivBean {
         private int order;
         private String label;
         private String orderLabel;
         
+        /**
+         * Constructor
+         */
         PageDivBean() {
             this.order = 0;
             this.label = null;
             this.orderLabel = null;
         }
+        /**
+         * Method to set the ordering of the page
+         * @param order the ordering of the page
+         */
         void setOrder(int order) {
             this.order = order;
         }
+        /**
+         * Method to get the ordering of the page
+         * @return the ordering of the page
+         */
         int getOrder() {
             return order;
         }
+        /**
+         * Method to set the page label of the page
+         * @param label the page label of the page
+         */
         void setLabel(String label) {
             this.label = label;
         }
+        /**
+         * Method to get the page label of the page
+         * @return the page label of the page
+         */
         String getLabel() {
             return label;
         }
+        /**
+         * Method to set the String representation of the ordering of the page
+         * @param orderLabel the String representation of the ordering of the page
+         */
         void setOrderLabel(String orderLabel) {
             this.orderLabel = orderLabel;
         }
+        /**
+         * Method to get the String representation of the ordering of the page
+         * @return the String representation of the ordering of the page
+         */
         String getOrderLabel() {
             return orderLabel;
         }
@@ -104,9 +142,7 @@ public class METSParser {
     public static final String METS_NAMESPACE = "http://www.loc.gov/METS/";
     public static final String XLINK_NAMESPACE = "http://www.w3.org/1999/xlink";
     public static final String EMPTY_NAMESPACE = "";
-    
-//    public static final String OCR_FILEID_REGEX = "OCR[0-9]{8}";
-    
+
     public static final QName QN_ELE_FILEGRP = new QName(METS_NAMESPACE, "fileGrp");
     public static final QName QN_ATTR_FILEGRP_USE = new QName(EMPTY_NAMESPACE, "USE");
     
@@ -139,17 +175,32 @@ public class METSParser {
     protected VolumeRecord volumeRecord;
     protected XMLInputFactory factory;
     
+    /**
+     * Constrcutor
+     * @param metsFile a File representing a METS XML file
+     * @param volumeRecord a VolumeRecord object whose attributes will be populated by this parser
+     * @param factory an XMLInputFactory object for creating XML pull parser
+     */
     public METSParser(File metsFile, VolumeRecord volumeRecord, XMLInputFactory factory) {
         this.metsFile = metsFile;
         this.volumeRecord = volumeRecord;
         this.factory = factory;
     }
     
+    /**
+     * Method to return the VolumeRecord object
+     * @return the VolumeRecord object
+     */
     public VolumeRecord getVolumeRecord() {
         return volumeRecord;
     }
     
-    
+    /**
+     * Method to parse the METS file
+     * @throws FileNotFoundException thrown if the METS XML file is not found
+     * @throws XMLStreamException thrown if the XML pull parser encounters an error 
+     * @throws IOException thrown if the reading of the METS file failed
+     */
     public void parse() throws FileNotFoundException, XMLStreamException, IOException   {
         
         if (log.isTraceEnabled()) log.trace("parsing METS for volume " + volumeRecord.getVolumeID());
@@ -233,8 +284,6 @@ public class METSParser {
                                     pageRecord.setChecksum(checksumAttributeValue, checksumTypeAttributeValue);
                                     pageRecord.setID(idAttributeValue);
                                     pageRecord.setSequence(seqAttributeValue);
-                                    
-//                                    volumeRecord.addPageRecord(pageRecord); // cannot add yet because xlink:href is not known
                                     
                                 } else {
                                     log.warn("Duplicate page ID in METS. ID: " + idAttributeValue + " metsFile: " + metsFile.getPath());
@@ -347,8 +396,6 @@ public class METSParser {
                                         }
                                         phaseStack.push(ParsePhaseEnum.OCR_FPTR);
                                         
-//                                    } else {
-//                                        log.warn("Null PageRecord retrieved for FILEID: " + fileIDAttrValue + " metsFile: " + metsFile.getPath());
                                     }
                                 } else {
                                     if (log.isDebugEnabled()) log.debug("Null currentPageDivBean for FILEID: " + fileIDAttrValue + " metsFile: " + metsFile.getPath());
@@ -399,7 +446,11 @@ public class METSParser {
         reader.close();
     }
     
-    
+    /**
+     * Method to parse a page features string and add to the page feature list
+     * @param pageRecord a PageRecord object
+     * @param features a comma-separated page features string extracted from METS
+     */
     private void addPageFeatures(PageRecord pageRecord, String features) {
         StringTokenizer stringTokenizer = new StringTokenizer(features, ",");
         while (stringTokenizer.hasMoreTokens()) {
@@ -410,7 +461,11 @@ public class METSParser {
         }
     }
     
-    
+    /**
+     * Method to get a HashMap of XML attributes and values
+     * @param reader an XMLStreamReader object
+     * @return a HashMap of attributes
+     */
     private HashMap<QName, String> getAttributes(XMLStreamReader reader) {
         HashMap<QName, String> rawAttributesMap = new HashMap<QName, String>();
         int attributeCount = reader.getAttributeCount();
@@ -424,7 +479,11 @@ public class METSParser {
     }
     
     
-    
+    /**
+     * Method to read the content of a file into a String and return it
+     * @param file a File to be read
+     * @return a String object containing the content of the file
+     */
     protected String readFileIntoString(File file) {
         StringBuilder fileContentsBuilder = new StringBuilder();
         BufferedReader bufferedReader = null;

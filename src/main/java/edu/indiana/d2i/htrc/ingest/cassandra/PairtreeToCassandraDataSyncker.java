@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  DeltaLogFileLister.java
-# Description:  
+# Description: This class drives the synchronization/ingest of corpus data from the Pairtree on filesystem to Cassandra 
 #
 # -----------------------------------------------------------------
 # 
@@ -44,11 +44,17 @@ import edu.indiana.d2i.htrc.ingest.JobQueue;
 import edu.indiana.d2i.htrc.ingest.PropertyReader;
 
 /**
+ * This class drives the synchronization/ingest of corpus data from the Pairtree on filesystem to Cassandra 
  * @author Yiming Sun
  *
  */
 public class PairtreeToCassandraDataSyncker {
     
+    /**
+     * This class implements FilenameFilter and FileFilter interfaces to pick delta log files
+     * @author Yiming Sun
+     *
+     */
     static final class DeltaLogDirectoryFilter implements FilenameFilter, FileFilter {
 
         private static final String regexp = "dlog-\\d{8}-\\d{9}";
@@ -72,6 +78,11 @@ public class PairtreeToCassandraDataSyncker {
         
     }
     
+    /**
+     * This class implements FilenameFilter and FileFilter interfaces to pick directories containing delta log files
+     * @author Yiming Sun
+     *
+     */
     static final class DeltaLogFileFilter implements FilenameFilter, FileFilter {
         private static final String regexp = "t-\\d+-\\d+\\.txt";
 
@@ -105,6 +116,9 @@ public class PairtreeToCassandraDataSyncker {
     
     protected File[] dlogDirList;
     
+    /**
+     * Constructor
+     */
     public PairtreeToCassandraDataSyncker() {
         PropertyReader propertyReader = PropertyReader.getInstance();
         
@@ -117,7 +131,9 @@ public class PairtreeToCassandraDataSyncker {
         
     }
     
-    
+    /**
+     * Method to list delta log files
+     */
     protected void listFiles() {
         
         File deltaLogRootDir = new File(deltaLogRoot);
@@ -139,6 +155,10 @@ public class PairtreeToCassandraDataSyncker {
         jobQueue.markDone();
     }
 
+    /**
+     * Method to launch threads that process delta log files
+     * @return a List of Thread objects
+     */
     protected List<Thread> launchProcessorThreads() {
 
         List<Thread> threadList = new ArrayList<Thread>();
@@ -154,6 +174,10 @@ public class PairtreeToCassandraDataSyncker {
         return threadList;
     }
     
+    /**
+     * Method to wait and join the threads
+     * @param threadList a List of Thread objects
+     */
     protected void joinProcessorThreads(List<Thread> threadList){
         for (int i = 0; i < threadCount; i++) {
             try {
@@ -166,13 +190,18 @@ public class PairtreeToCassandraDataSyncker {
         }
         
     }
-    
+    /**
+     * Method to run jobs
+     */
     protected void runJob() {
         List<Thread> threadList = launchProcessorThreads();
         listFiles();
         joinProcessorThreads(threadList);
     }
     
+    /**
+     * Method to change the delta log directories names to signify they have been processed
+     */
     protected void markDlogDirsAsDone() {
         for (File dir : dlogDirList) {
             String dirName = dir.getName();
@@ -190,6 +219,9 @@ public class PairtreeToCassandraDataSyncker {
         }
     }
     
+    /**
+     * Method to initiate the process
+     */
     public void process() {
         runJob();
         markDlogDirsAsDone();

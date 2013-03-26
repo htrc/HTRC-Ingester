@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  HectorManager.java
-# Description:  
+# Description: This class provides higher level methods to encapsulate some Hector API calls
 #
 # -----------------------------------------------------------------
 # 
@@ -72,6 +72,7 @@ import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogProcessor.VolumeRecord;
 import edu.indiana.d2i.htrc.ingest.cassandra.DeltaLogProcessor.VolumeRecord.PageRecord;
 
 /**
+ * This class provides higher level methods to encapsulate some Hector API calls
  * @author Yiming Sun
  *
  */
@@ -95,10 +96,17 @@ public class HectorManager {
     protected final long initFailureDelay;
     protected final long maxFailureDelay;
     
+    /**
+     * Method to return the singleton instance of HectorManager
+     * @return the singleton instance of HectorManager
+     */
     public static HectorManager getInstance() {
         return instance;
     }
     
+    /**
+     * Constructor
+     */
     private HectorManager() {
         PropertyReader propertyReader = PropertyReader.getInstance();
         
@@ -116,12 +124,25 @@ public class HectorManager {
         
     }
 
+    /**
+     * Method to create a ColumnFamilyTemplate object
+     * @param keySerializer the serializer for the row key
+     * @param columnNameSerializer the serializer for the column name
+     * @param columnFamilyName the name of the column family
+     * @return a ColumnFamily object
+     */
     protected <K, N> ColumnFamilyTemplate<K, N> createColumnFamilyTemplate(Serializer<K> keySerializer, Serializer<N> columnNameSerializer, String columnFamilyName) {
         Keyspace keyspace = HFactory.createKeyspace(keyspaceName, cluster);
         ColumnFamilyTemplate<K, N> columnFamilyTemplate = new ThriftColumnFamilyTemplate<K, N>(keyspace, columnFamilyName, keySerializer, columnNameSerializer);
         return columnFamilyTemplate;
     }
     
+    /**
+     * Method to carry out the deletion of volumes from Cassandra via Hector
+     * @param volumeDeletionList a List of VolumeDeletionInfo objects representing volumes to be deleted
+     * @throws HInvalidRequestException thrown from Hector client
+     * @throws HTimedOutException thrown from Hector client
+     */
     public void delete(List<VolumeDeletionInfo> volumeDeletionList) throws HInvalidRequestException, HTimedOutException {
         boolean successful = false;
         int attemptsLeft = maxAttempts;
@@ -226,7 +247,11 @@ public class HectorManager {
         if (log.isTraceEnabled()) log.trace("done executingBatch in HectorManager.delete");
     }
     
-    
+    /**
+     * Method to carry out the update of a volume in Cassandra
+     * @param volumeUpdateInfo a VolumeUpdateInfo object representing the volume to be updated
+     * @param volumeRecord a VolumeRecord object containing the metadata of the volume
+     */
     public void update(VolumeUpdateInfo volumeUpdateInfo, VolumeRecord volumeRecord) {
         Serializer<String> stringSerializer = new StringSerializer();
 
@@ -254,6 +279,13 @@ public class HectorManager {
     }
     
 
+    /**
+     * Method to update the collection names column family
+     * @param collectionNameSet a HashSet containing collection names
+     * @param valuelessFiller a filler used for creating value-less Cassandra columns
+     * @throws HInvalidRequestException thrown from Hector client
+     * @throws HTimedOutException thrown from Hector client
+     */
     protected void updateCollectionNamesColumnFamily(HashSet<String> collectionNameSet, byte[] valuelessFiller) throws HInvalidRequestException, HTimedOutException {
         boolean successful = false;
         int attemptsLeft = maxAttempts;
@@ -295,6 +327,16 @@ public class HectorManager {
         
     }
     
+    /**
+     * Method to update the collections column family in Cassandra with the newly updated volume
+     * @param volumeID volumeID of the volume
+     * @param copyright copyright of the volume
+     * @param collectionsCFTemplate the ColumnFamilyTemplate object of the collections column family
+     * @param valuelessFiller a filler used to create a value-less column in Cassandra
+     * @param collectionNameSet a Set containing collection names
+     * @throws HInvalidRequestException thrown from Hector client
+     * @throws HTimedOutException thrown from Hector client
+     */
     protected void updateCollectionsColumnFamily(String volumeID, CopyrightEnum copyright, ColumnFamilyTemplate<String, String> collectionsCFTemplate, byte[] valuelessFiller, HashSet<String> collectionNameSet) throws HInvalidRequestException, HTimedOutException {
         boolean successful = false;
         int attemptsLeft = maxAttempts;
@@ -365,7 +407,16 @@ public class HectorManager {
     }
     
     
-
+    /**
+     * Method to update the volume content in Cassandra
+     * @param volumeID volumeID of the volume
+     * @param volumeZipPath path to the Zip file of the volume
+     * @param volumeRecord a VolumeRecord object containing the metadata of the volume
+     * @param volumeCFTemplate a ColumnFamilyTemplate object for the VolumeContents column family
+     * @return a boolean flag indicating if the operation succeeded or not
+     * @throws HInvalidRequestException thrown from Hector client
+     * @throws HTimedOutException thrown from Hector client
+     */
     protected boolean updateVolumeContents(String volumeID, String volumeZipPath, VolumeRecord volumeRecord, ColumnFamilyTemplate<String, String> volumeCFTemplate) throws HInvalidRequestException, HTimedOutException {
         HashMap<Integer, PageRecord> pageMapByOrder = new HashMap<Integer, PageRecord>();
         HashMap<String, List<String>> featuredPagesMap = new HashMap<String, List<String>>();
@@ -497,6 +548,13 @@ public class HectorManager {
         
     }
 
+    /**
+     * Method to update the metadata for a volume
+     * @param volumeID volumeID of the volume
+     * @param volumeRecord a VolumeRecord object containing the metadata of the volume
+     * @param featuredPagesMap a HashMap containing all page feature keywords of pages from the volume
+     * @param volumeCFTemplate a ColumnFamilyTemplate object for the VolumeContents column family
+     */
       protected void updateVolumeMetadata(String volumeID, VolumeRecord volumeRecord, HashMap<String, List<String>> featuredPagesMap, ColumnFamilyTemplate<String, String> volumeCFTemplate) {
         boolean successful = false;
         int attemptsLeft = maxAttempts;
@@ -556,6 +614,11 @@ public class HectorManager {
     }
     
     static final int SEQUENCE_LENGTH = 8;
+    /**
+     * Method to generate a fixed-length zero-padded page sequence number
+     * @param order the ordering of a page
+     * @return a fixed-length zero-padded page sequence number based on the ordering
+     */
     protected String generateSequence(int order) {
         String orderString = Integer.toString(order);
         
@@ -569,13 +632,22 @@ public class HectorManager {
         return sequenceBuilder.toString();
         
     }
+    /**
+     * Method to extract the filename from a ZipEntry name
+     * @param entryName name of a ZipEntry
+     * @return extracted filename
+     */
     protected String extractEntryFilename(String entryName) {
         int lastIndex = entryName.lastIndexOf('/');
         return entryName.substring(lastIndex + 1);
     }
     
 
-    
+    /**
+     * Method to read page contents from an InputStream object
+     * @param inputStream an InputStream object opened for page contents
+     * @return a byte array containing the raw page content
+     */
     protected byte[] readPageContentsFromInputStream(InputStream inputStream) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         byte[] buffer = new byte[32767];
@@ -599,7 +671,16 @@ public class HectorManager {
         return byteArrayOutputStream.toByteArray();
     }
     
-
+    /**
+     * Method to update page content in Cassandra
+     * @param pageContent a byte array containing the raw page content
+     * @param volumeID volumeID of the volume
+     * @param pageRecord a PageRecord object containing metadata for the page
+     * @param featuredPagesMap a HashMap object containing all features the page has
+     * @param volumeCFTemplate a ColumnFamilyTemplate object for the VolumeContents column family in Cassandra
+     * @throws HInvalidRequestException thrown from Hector client
+     * @throws HTimedOutException thrown from Hector client
+     */
     protected void updatePage(byte[] pageContent, String volumeID, PageRecord pageRecord, HashMap<String, List<String>> featuredPagesMap, ColumnFamilyTemplate<String, String> volumeCFTemplate) throws HInvalidRequestException, HTimedOutException {
         
         boolean successful = false;
@@ -667,13 +748,18 @@ public class HectorManager {
 
     }
     
-
+    /**
+     * Method to get the StringKeyIterator of the VolumeContents column family
+     * @return a StringKeyIterator object of the VolumeContents column family
+     */
     public StringKeyIterator getVolumeContentKeyIterator() {
         Keyspace keyspace = HFactory.createKeyspace(keyspaceName, cluster);
         StringKeyIterator keyIterator = new StringKeyIterator(keyspace, volumeContentsCFName);
         return keyIterator;
     }
-    
+    /**
+     * Method to shutdown the resources used by Hector
+     */
     public void shutdown() {
         cluster.getConnectionManager().shutdown();
     }
