@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  HectorManager.java
-# Description:  
+# Description: This class provides high level methods for operations against Cassandra 
 #
 # -----------------------------------------------------------------
 # 
@@ -62,47 +62,85 @@ import edu.indiana.d2i.htrc.ingest.Constants;
 import edu.indiana.d2i.htrc.ingest.PropertyReader;
 
 /**
+ * This class provides high level methods for operations against Cassandra
  * @author Yiming Sun
  *
  */
 public class HectorAccessor {
     
+    /**
+     * This class encapsulates metadata for page size
+     * @author Yiming Sun
+     *
+     */
     static class PageSizeMetadata {
         private final long byteCount;
         private final int characterCount;
         
+        /**
+         * Constructor
+         * @param byteCount page size as number of bytes
+         * @param characterCount page size as number of characters
+         */
         PageSizeMetadata(long byteCount, int characterCount) {
             this.byteCount = byteCount;
             this.characterCount = characterCount;
         }
-        
+        /**
+         * Method to get page size as number of bytes
+         * @return page size as number of bytes
+         */
         long getByteCount() {
             return byteCount;
         }
-        
+        /**
+         * MEthod to get page size as number of characters
+         * @return page size as number of characters
+         */
         int getCharacterCount() {
             return characterCount;
         }
     }
     
+    /**
+     * This class encapsulates checksum metadata for page
+     * @author Yiming Sun
+     *
+     */
     static class PageChecksumMetadata {
         private final String checksum;
         private final String checksumType;
         
+        /**
+         * Constructor
+         * @param checksum String representation of page content checksum
+         * @param checksumType type of checksum
+         */
         PageChecksumMetadata(String checksum, String checksumType) {
             this.checksum = checksum;
             this.checksumType = checksumType;
         }
-        
+        /**
+         * Method to get checksum
+         * @return
+         */
         String getChecksum() {
             return checksum;
         }
-        
+        /**
+         * Method to get checksum type
+         * @return
+         */
         String getChecksumType() {
             return checksumType;
         }
     }
     
+    /**
+     * This class is for storing page content 
+     * @author Yiming Sun
+     *
+     */
     static class PageContents {
         private byte[] contentsBytes;
         private long byteCount;
@@ -110,6 +148,10 @@ public class HectorAccessor {
         private String checksum;
         private String checksumType;
         
+        /**
+         * Constructor
+         * @param contentsBytes page content
+         */
         PageContents(byte[] contentsBytes) {
             this.contentsBytes = contentsBytes;
             byteCount = -1;
@@ -118,29 +160,62 @@ public class HectorAccessor {
             checksumType = null;
         }
         
+        /**
+         * Method to get page content as raw byte array
+         * @return page content as raw byte array
+         */
         byte[] getContentsBytes() {
             return contentsBytes;
         }
         
+        /**
+         * Method to get page size as number of bytes
+         * @return page size as number of bytes
+         */
         long getByteCount() {
             return byteCount;
         }
+        /**
+         * Method to set page size as number of bytes
+         * @param byteCount page size as number of bytes
+         */
         void setByteCount(long byteCount) {
             this.byteCount = byteCount;
         }
+        /**
+         * Method to get page size as number of characters
+         * @return page size as number of characters
+         */
         int getCharacterCount() {
             return characterCount;
         }
+        /**
+         * Method to set page size as number of characters
+         * @param characterCount page size as number of characters
+         */
         void setCharacterCount(int characterCount) {
             this.characterCount = characterCount;
         }
+        /**
+         * Method to set page checksum
+         * @param checksum String representation of page content checksum
+         * @param checksumType type of checksum
+         */
         void setChecksum(String checksum, String checksumType) {
             this.checksum = checksum;
             this.checksumType = checksumType;
         }
+        /**
+         * Method to get page checksum
+         * @return String representation of page content checksum
+         */
         String getChecksum() {
             return checksum;
         }
+        /**
+         * Method to get page checksum type
+         * @return page checksum type
+         */
         String getChecksumType() {
             return checksumType;
         }
@@ -159,10 +234,17 @@ public class HectorAccessor {
     protected final long initFailureDelay;
     protected final long maxFailureDelay;
     
+    /**
+     * Method to get the singleton instance
+     * @return the singleton instance
+     */
     public static HectorAccessor getInstance() {
         return instance;
     }
     
+    /**
+     * Private constructor
+     */
     private HectorAccessor() {
         PropertyReader propertyReader = PropertyReader.getInstance();
         String log4PropertiesPath = propertyReader.getProperty(Constants.PK_LOG4J_PROPERTIES_PATH);
@@ -182,7 +264,13 @@ public class HectorAccessor {
         
     }
     
-
+    /**
+     * Method to get the number of pages a volume has
+     * @param volumeID volumeID of the volume
+     * @return number of pages a volume has
+     * @throws VerificationException thrown if the volume or a page does not verify
+     * @throws HTimedOutException thrown from Hector client
+     */
     public int retrieveVolumePageCount(String volumeID) throws VerificationException, HTimedOutException {
         int pageCount = -1;
         
@@ -246,7 +334,15 @@ public class HectorAccessor {
     
     
     
-
+    /**
+     * Method to get the content of a page
+     * @param volumeID volumeID of the volume
+     * @param pageSequence page sequence number of the page to retrieve
+     * @return content of the page
+     * @throws VerificationException thrown if the page content does not verify
+     * @throws UnsupportedEncodingException thrown if the page content is not UTF-8 encoded
+     * @throws HTimedOutException thrown from Hector client
+     */
     public byte[] retrievePageContents(String volumeID, String pageSequence) throws VerificationException, UnsupportedEncodingException, HTimedOutException {
         byte[] contents = null;
         
@@ -300,7 +396,14 @@ public class HectorAccessor {
         return contents;
     }
     
-    
+    /**
+     * Method to get page size metadata of a page
+     * @param volumeID volumeID of the volume
+     * @param pageSequence page sequence number of the page
+     * @return page size metadata
+     * @throws VerificationException thrown if the page does not verify
+     * @throws HTimedOutException thrown from Hector client
+     */
     public PageSizeMetadata retrievePageSizeMetadata(String volumeID, String pageSequence) throws VerificationException, HTimedOutException {
         PageSizeMetadata pageSizeMetadata = null;
         
@@ -384,7 +487,14 @@ public class HectorAccessor {
         return pageSizeMetadata;
     }
     
-    
+    /**
+     * Method to get page checksum metadata
+     * @param volumeID volumeID of the volume
+     * @param pageSequence page sequence number of the page
+     * @return page checksum metadata of the page
+     * @throws VerificationException thrown if the page does not verify
+     * @throws HTimedOutException thrown from Hector client
+     */
     public PageChecksumMetadata retrievePageChecksumMetadata(String volumeID, String pageSequence) throws VerificationException, HTimedOutException {
         PageChecksumMetadata pageChecksumMetadata = null;
         
@@ -464,6 +574,11 @@ public class HectorAccessor {
         
     }
     
+    /**
+     * Method to get all volumeIDs
+     * @return a List of volumeIDs
+     * @throws HTimedOutException thrown from Hector client
+     */
     public List<String> getAllVolumeIDs() throws HTimedOutException {
         List<String> volumeIDs = null;
         Keyspace keyspace = HFactory.createKeyspace(keyspaceName, cluster);
@@ -507,7 +622,9 @@ public class HectorAccessor {
     }
     
     
-   
+    /**
+     * Method to shutdown and reclaim resources used by Hector client
+     */
     public void shutdown() {
         cluster.getConnectionManager().shutdown();
     }

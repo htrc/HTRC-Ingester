@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2012 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,9 +8,9 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
@@ -18,7 +18,7 @@
 #
 # Project: HTRC-Ingester
 # File:  Verifier.java
-# Description:  
+# Description: This implementation of Runnable interface carries out the verification process  
 #
 # -----------------------------------------------------------------
 # 
@@ -52,10 +52,16 @@ import edu.indiana.d2i.htrc.ingest.verify.HectorAccessor.PageSizeMetadata;
 import gov.loc.repository.pairtree.Pairtree;
 
 /**
+ * This implementation of Runnable interface carries out the verification process
  * @author Yiming Sun
  *
  */
 public class Verifier implements Runnable {
+    /**
+     * This Enum represents different verification levels
+     * @author Yiming Sun
+     *
+     */
     public static enum VerificationLevelEnum {
         VERIFY_PAGE_COUNT(0),
         VERIFY_PAGE_SIZE(1),
@@ -63,14 +69,26 @@ public class Verifier implements Runnable {
         
         private int level;
         
+        /**
+         * Constructor
+         * @param level numeric representation of verification level
+         */
         VerificationLevelEnum(int level) {
             this.level = level;
         }
-        
+        /**
+         * Method to get numeric representation of verification level
+         * @return numeric representation of verification level
+         */
         private int getLevel() {
             return this.level;
         }
         
+        /**
+         * Method to check if one verification level includes another
+         * @param another another verification level
+         * @return a boolean flag to indicate if one verification level includes another
+         */
         public boolean include(VerificationLevelEnum another) {
             return (this.getLevel() >= another.getLevel());
         }
@@ -83,6 +101,11 @@ public class Verifier implements Runnable {
     protected JobQueue<File> jobQueue;
     protected Pairtree pairtree;
 
+    /**
+     * Constructor
+     * @param jobQueue a JobQueue of File objects representing delta logs
+     * @param verificationLevel level at which the verification is to be done
+     */
     protected Verifier(JobQueue<File> jobQueue, VerificationLevelEnum verificationLevel) {
         this.jobQueue = jobQueue;
         this.verificationLevel = verificationLevel;
@@ -90,7 +113,10 @@ public class Verifier implements Runnable {
         this.pairtree = new Pairtree();
         
     }
-    
+    /**
+     * 
+     * @see java.lang.Runnable#run()
+     */
     public void run() {
         while (!jobQueue.isDone()) {
             File parsedDeltaLog = jobQueue.dequeue();
@@ -103,7 +129,11 @@ public class Verifier implements Runnable {
             
         }
     }
-    
+    /**
+     * Method to extract volumeIDs from parsed delta log files
+     * @param parsedDeltaLog a File object representing a parsed delta log file
+     * @return a List of volumeIDs
+     */
     protected List<String> extractVolumeIDs(File parsedDeltaLog) {
         List<String> volumeIDList = new LinkedList<String>();
 
@@ -148,6 +178,10 @@ public class Verifier implements Runnable {
 
     }
     
+    /**
+     * Method to initiate verification of a volume
+     * @param volumeID volumeID of a volume to verify
+     */
     public void verify(String volumeID) {
         
         try {
@@ -168,7 +202,10 @@ public class Verifier implements Runnable {
         
     }
     
-
+    /**
+     * Method to rename a parsed delta log file to an extracted delta log file
+     * @param parsedFile the File to rename
+     */
     protected void renameParsedFileToExtracted(File parsedFile) {
         File parent = parsedFile.getParentFile();
         String filename = parsedFile.getName();
@@ -187,6 +224,15 @@ public class Verifier implements Runnable {
         }
     }
     
+    /**
+     * Method to verify pages
+     * @param volumeID volumeID of the volume to verify
+     * @param pageCount number of pages the volume has
+     * @throws VerificationException thrown if the verification failed
+     * @throws UnsupportedEncodingException thrown if the pages contents are not UTF-8 encoded
+     * @throws NoSuchAlgorithmException thrown if the JVM does not support checksum type
+     * @throws HTimedOutException thrown from Hector client
+     */
     protected void verifyPages(String volumeID, int pageCount)  throws VerificationException, UnsupportedEncodingException, NoSuchAlgorithmException, HTimedOutException {
 
         
@@ -217,13 +263,28 @@ public class Verifier implements Runnable {
         }
     }
 
+    /**
+     * Method to verify a volume actually has the page
+     * @param volumeID volumeID of the volume to be verified
+     * @param pageSequence page sequence number of the page to be verified
+     * @param pageContents content of the page to be verified
+     * @throws VerificationException thrown if the verification failed
+     */
     protected void verifyPageCount(String volumeID, String pageSequence, byte[] pageContents) throws VerificationException {
         if (pageContents == null) {
             throw new VerificationException("No page contents", volumeID, pageSequence);
         }
     }
     
-
+    /**
+     * Method to verify a page's size matches the claimed size
+     * @param volumeID volumeID of the volume to be verified
+     * @param pageSequence page sequence number of the page to be verified
+     * @param pageContents content of the page to be verified
+     * @param pageSizeMetadata claimed page size
+     * @throws VerificationException thrown if the verification failed
+     * @throws UnsupportedEncodingException thrown if the page content is not UTF-8 encoded
+     */
     protected void verifyPageSize(String volumeID, String pageSequence, byte[] pageContents, PageSizeMetadata pageSizeMetadata) throws VerificationException, UnsupportedEncodingException {
         
         long actualByteCount = pageContents.length;
@@ -245,7 +306,15 @@ public class Verifier implements Runnable {
         }
 
     }
-    
+    /**
+     * Method to verify a page's checksum
+     * @param volumeID volumeID of the volume to be verified
+     * @param pageSequence page sequence number of the page to be verified
+     * @param pageContents content of the page to be verified
+     * @param pageChecksumMetadata a PageChecksumMetadata object containing checksum and checksum type
+     * @throws VerificationException thrown if the verification failed
+     * @throws NoSuchAlgorithmException thrown if the JVM does not support the specific checksum type
+     */
     protected void verifyPageChecksum(String volumeID, String pageSequence, byte[] pageContents, PageChecksumMetadata pageChecksumMetadata) throws VerificationException, NoSuchAlgorithmException {
         if (pageChecksumMetadata != null) {
             String checksumType = pageChecksumMetadata.getChecksumType();

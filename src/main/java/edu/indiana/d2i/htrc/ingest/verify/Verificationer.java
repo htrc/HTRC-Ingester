@@ -1,6 +1,6 @@
 /*
 #
-# Copyright 2007 The Trustees of Indiana University
+# Copyright 2013 The Trustees of Indiana University
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -8,16 +8,16 @@
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or areed to in writing, software
+# Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either expressed or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
 # -----------------------------------------------------------------
 #
 # Project: HTRC-Ingester
-# File:  VerificationDriver.java
+# File:  Verificationer.java
 # Description:  
 #
 # -----------------------------------------------------------------
@@ -46,11 +46,17 @@ import edu.indiana.d2i.htrc.ingest.Util;
 import edu.indiana.d2i.htrc.ingest.verify.Verifier.VerificationLevelEnum;
 
 /**
+ * This class initiates the verification process
  * @author Yiming Sun
  *
  */
 public class Verificationer {
 
+    /**
+     * This class implements the FilenameFilter and FileFilter interfaces for picking up processed delta log directories
+     * @author Yiming Sun
+     *
+     */
     static final class ProcessedDeltaLogDirectoryFilter implements FilenameFilter, FileFilter {
 
         private static final String regexp = "_PROCESSED_dlog-\\d{8}-\\d{9}";
@@ -76,6 +82,9 @@ public class Verificationer {
 
     private static Logger log = Logger.getLogger(Verificationer.class);
     
+    /**
+     * Method to carry out the verification process
+     */
     public void verify() {
 
         JobQueue<File> processedDeltaLogQueue = new JobQueue<File>("ProcessedDeltaLogQueue");
@@ -93,9 +102,13 @@ public class Verificationer {
             }
         }
         
-        markProcessedkDlogDirsAsDone();
+        markProcessedDlogDirsAsDone();
     }
     
+    /**
+     * Method to list processed delta logs
+     * @param processedDeltaLogQueue a JobQueue of File objects containing processed delta logs
+     */
     protected void listProcessedDeltaLogs(JobQueue<File> processedDeltaLogQueue) {
         ProcessedDeltaLogLister lister = new ProcessedDeltaLogLister(processedDeltaLogQueue);
         Thread thread = new Thread(lister);
@@ -103,7 +116,11 @@ public class Verificationer {
         
     }
     
-    
+    /**
+     * Method to launch verification threads
+     * @param processedDeltaLogQueue a JobQueue of File objects containing processed delta logs
+     * @return a List of Thread objects
+     */
     protected List<Thread> launchVerifierThreads(JobQueue<File> processedDeltaLogQueue) {
 
         List<Thread> threads = new ArrayList<Thread>();
@@ -130,8 +147,10 @@ public class Verificationer {
         return threads;
         
     }
-    
-    protected void markProcessedkDlogDirsAsDone() {
+    /**
+     * Method to mark processed delta log directories
+     */
+    protected void markProcessedDlogDirsAsDone() {
         PropertyReader propertyReader = PropertyReader.getInstance();
         
         String deltaLogRoot = propertyReader.getProperty(Constants.PK_DELTA_LOG_ROOT);
